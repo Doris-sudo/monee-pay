@@ -1,0 +1,112 @@
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  padding: 12px 16px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.table td {
+  padding: 16px;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.tableRow {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.tableRow:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.orderId a {
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.partiesCell {
+  color: var(--text-primary);
+}
+
+.amountCell {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.deadlineCell {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Status Badges */
+.statusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.funded {
+  background: rgba(0, 212, 170, 0.12);
+  color: #00D4AA;
+  border: 1px solid rgba(0, 212, 170, 0.25);
+}
+
+.awaiting {
+  background: rgba(245, 166, 35, 0.12);
+  color: #F5A623;
+  border: 1px solid rgba(245, 166, 35, 0.25);
+}
+
+.milestone {
+  background: rgba(0, 180, 216, 0.12);
+  color: #00B4D8;
+  border: 1px solid rgba(0, 180, 216, 0.25);
+}
+
+.disputed {
+  background: rgba(255, 82, 82, 0.12);
+  color: #FF5252;
+  border: 1px solid rgba(255, 82, 82, 0.25);
+}
+
+.completed {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.emptyIconBox {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  border: var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
