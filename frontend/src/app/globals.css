@@ -1,43 +1,31 @@
 :root {
-  /* Typography Variables */
   --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-heading: var(--font-outfit), var(--font-inter), sans-serif;
 
-  /* Color Palette Tokens */
+  /* Color System */
   --bg-primary: #0A0E1A;
   --bg-secondary: #0F1528;
   --bg-elevated: #151C33;
   --bg-card: rgba(255, 255, 255, 0.03);
   --bg-card-hover: rgba(255, 255, 255, 0.06);
 
-  /* Brand Accents */
   --accent-teal: #00D4AA;
   --accent-teal-glow: rgba(0, 212, 170, 0.25);
   --accent-cyan: #00B4D8;
   --accent-cyan-glow: rgba(0, 180, 216, 0.25);
 
-  /* Gradients */
   --gradient-primary: linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%);
   --gradient-hover: linear-gradient(135deg, #00E6B8 0%, #00C6EC 100%);
   --gradient-subtle: linear-gradient(180deg, rgba(0, 212, 170, 0.08) 0%, rgba(0, 180, 216, 0.02) 100%);
 
-  /* Text Colors */
   --text-primary: #FFFFFF;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
 
-  /* Status Colors */
-  --color-success: #00D4AA;
-  --color-warning: #F5A623;
-  --color-error: #FF5252;
-  --color-info: #00B4D8;
-
-  /* Borders & Glassmorphism */
   --border-glass: 1px solid rgba(255, 255, 255, 0.08);
   --border-glass-hover: 1px solid rgba(0, 212, 170, 0.4);
   --border-subtle: 1px solid rgba(255, 255, 255, 0.05);
 
-  /* Radii & Shadows */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
@@ -47,7 +35,6 @@
   --shadow-glow: 0 0 30px rgba(0, 212, 170, 0.15);
   --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
 
-  /* Transitions */
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -86,7 +73,7 @@ a {
   text-decoration: none;
 }
 
-/* Design Tokens Utilities */
+/* Common Utilities */
 .gradient-text {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -106,4 +93,59 @@ a {
   background: var(--bg-card-hover);
   border: var(--border-glass-hover);
   box-shadow: var(--shadow-glow);
+}
+
+/* Button System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+  font-family: var(--font-sans);
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: #050A14;
+  box-shadow: 0 4px 20px var(--accent-teal-glow);
+}
+
+.btn-primary:hover {
+  background: var(--gradient-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 212, 170, 0.4);
+}
+
+.btn-outlined {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  border: var(--border-glass);
+}
+
+.btn-outlined:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Keyframe Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }

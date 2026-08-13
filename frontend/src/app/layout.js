@@ -16,8 +16,14 @@ const outfit = Outfit({
 export const metadata = {
   title: "MoneePay — Trustless Commerce on Quai Network",
   description:
-    "Design system and smart-contract-powered escrow payment platform built on Quai Network.",
-  keywords: ["Quai Network", "Escrow", "Design System", "Qi Token", "WQI"],
+    "Escrow-powered payments on Quai Network. Buy with confidence and get paid with certainty using programmable smart contract escrow.",
+  keywords: ["Quai Network", "Escrow", "Crypto Payouts", "Qi Token", "WQI", "Blockchain Payments"],
+  authors: [{ name: "MoneePay Team" }],
+  openGraph: {
+    title: "MoneePay — Trustless Commerce on Quai Network",
+    description: "Smart-contract-powered escrow payment platform built on Quai Network.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }) {
