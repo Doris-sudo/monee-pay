@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "./OrdersTable.module.css";
 
 export default function OrdersTable({ ordersData = [], viewState = "connected" }) {
+  const router = useRouter();
+
   if (viewState === "empty") {
     return (
       <div className={styles.emptyState}>
@@ -34,9 +39,21 @@ export default function OrdersTable({ ordersData = [], viewState = "connected" }
         </thead>
         <tbody>
           {ordersData.map((order) => (
-            <tr key={order.id} className={styles.tableRow} onClick={() => window.location.href = order.href}>
+            <tr
+              key={order.id}
+              className={styles.tableRow}
+              onClick={() => router.push(order.href)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  router.push(order.href);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+            >
               <td className={styles.orderId}>
-                <Link href={order.href}>{order.id}</Link>
+                <Link href={order.href} onClick={(e) => e.stopPropagation()}>{order.id}</Link>
               </td>
               <td className={styles.partiesCell}>{order.parties}</td>
               <td className={styles.amountCell}>{order.amount}</td>

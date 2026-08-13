@@ -60,10 +60,10 @@ export default function Dashboard() {
   ];
 
   const activityFeed = [
-    { text: "Order #MNP-0042 funded by Alice", amount: "+500 Qi", time: "10 mins ago", type: "in" },
-    { text: "Milestone 2 approved for Order #MNP-0040", amount: "+400 Qi", time: "2 hours ago", type: "in" },
-    { text: "Payment released for Order #MNP-0038", amount: "-450 Qi", time: "Yesterday", type: "out" },
-    { text: "Payment Link generated for MacBook Pro", amount: "500 Qi", time: "2 days ago", type: "info" }
+    { id: "act-1", text: "Order #MNP-0042 funded by Alice", amount: "+500 Qi", time: "10 mins ago", type: "in" },
+    { id: "act-2", text: "Milestone 2 approved for Order #MNP-0040", amount: "+400 Qi", time: "2 hours ago", type: "in" },
+    { id: "act-3", text: "Payment released for Order #MNP-0038", amount: "-450 Qi", time: "Yesterday", type: "out" },
+    { id: "act-4", text: "Payment Link generated for MacBook Pro", amount: "500 Qi", time: "2 days ago", type: "info" }
   ];
 
   return (
@@ -184,8 +184,8 @@ export default function Dashboard() {
                 <div className={`${styles.activityPanel} glass-card`}>
                   <h3 className={styles.panelTitle}>Recent Activity</h3>
                   <div className={styles.activityList}>
-                    {activityFeed.map((item, idx) => (
-                      <div key={idx} className={styles.activityItem}>
+                    {activityFeed.map((item) => (
+                      <div key={item.id} className={styles.activityItem}>
                         <div className={styles.activityDot} />
                         <div className={styles.activityContent}>
                           <span className={styles.activityText}>{item.text}</span>
