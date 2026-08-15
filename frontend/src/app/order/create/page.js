@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./CreateOrder.module.css";
 
 export default function CreateOrderPage() {
@@ -121,10 +122,11 @@ export default function CreateOrderPage() {
                 </button>
               </div>
 
-              <div style={{ display: "flex", gap: "12px", width: "100%", marginTop: "12px" }}>
+              <div style={{ display: "flex", gap: "12px", width: "100%", marginTop: "12px", flexWrap: "wrap" }}>
                 <Link href="/order/82hd91" className="btn btn-primary" style={{ flex: 1 }}>
                   View Order Detail
                 </Link>
+                <FarcasterShareButton text={`New Escrow Order Deployed on MoneePay: ${title || 'Escrow Payment'} (${totalAmount} Qi)!`} url={createdOrderLink} />
                 <Link href="/dashboard" className="btn btn-outlined" style={{ flex: 1 }}>
                   Go to Dashboard
                 </Link>
