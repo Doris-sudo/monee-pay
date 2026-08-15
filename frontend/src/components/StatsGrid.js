@@ -1,7 +1,31 @@
 import styles from "./StatsGrid.module.css";
 
 export default function StatsGrid({ viewState = "connected" }) {
-  const stats = [
+  const corporateStats = [
+    {
+      label: "Treasury Balance",
+      value: "45,000 Qi",
+      sub: "Available on Quai EVM",
+      badge: "Treasury",
+    },
+    {
+      label: "Monthly Payroll Allocated",
+      value: "1,800 Qi",
+      sub: "5 Team Members",
+    },
+    {
+      label: "Contractor Escrows",
+      value: "2,450 Qi",
+      sub: "3 Active Vendor Contracts",
+    },
+    {
+      label: "YTD Disbursed",
+      value: "128,400 Qi",
+      sub: "95% Gas Savings",
+    },
+  ];
+
+  const individualStats = [
     {
       label: "Active Escrows",
       value: viewState === "empty" ? "0" : "3",
@@ -24,6 +48,8 @@ export default function StatsGrid({ viewState = "connected" }) {
       sub: "0% dispute rate",
     },
   ];
+
+  const stats = viewState === "corporate" ? corporateStats : individualStats;
 
   return (
     <div className={styles.statsRow}>
