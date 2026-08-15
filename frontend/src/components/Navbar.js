@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
@@ -44,6 +45,7 @@ export default function Navbar() {
         </nav>
 
         <div className={styles.actions}>
+          <FarcasterAddFrameButton />
           <button 
             className={walletConnected ? "btn btn-outlined" : "btn btn-primary"}
             onClick={toggleWallet}
