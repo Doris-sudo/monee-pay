@@ -1,14 +1,15 @@
+import FarcasterShareButton from "./FarcasterShareButton";
 import styles from "./Hero.module.css";
 
 export default function Hero() {
   return (
     <section className={styles.heroSection}>
       <div className={styles.backgroundGlow} />
-      
+
       <div className={styles.container}>
         <div className={styles.badge}>
           <span className={styles.badgePulse} />
-          Built natively on Quai Network
+          Built natively on Quai Network & Farcaster
         </div>
 
         <h1 className={styles.title}>
@@ -31,6 +32,7 @@ export default function Hero() {
           <a href="#how-it-works" className="btn btn-outlined" id="hero-how-it-works-cta">
             How It Works
           </a>
+          <FarcasterShareButton text="Check out MoneePay — Smart Contract Escrow on Quai Network built for Farcaster!" />
         </div>
       </div>
     </section>

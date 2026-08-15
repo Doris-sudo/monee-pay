@@ -1,0 +1,42 @@
+.shareBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #8a63d2 0%, #4838a0 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: var(--font-outfit), sans-serif;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(138, 99, 210, 0.25);
+  text-decoration: none;
+}
+
+.shareBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(138, 99, 210, 0.4);
+  background: linear-gradient(135deg, #9b72e5 0%, #5442b7 100%);
+}
+
+.shareIcon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.fcBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(138, 99, 210, 0.15);
+  border: 1px solid rgba(138, 99, 210, 0.3);
+  color: #c4b5fd;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}

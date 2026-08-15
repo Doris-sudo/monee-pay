@@ -2,6 +2,7 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
+import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./OrderCheckout.module.css";
 
 export default function OrderPage({ params }) {
@@ -257,6 +258,8 @@ export default function OrderPage({ params }) {
                     </svg>
                     <span>Open Dispute</span>
                   </button>
+
+                  <FarcasterShareButton buttonText="Share Escrow Link" text={`Check out Escrow Order #${orderId} on MoneePay (Quai Network)!`} />
                 </div>
               </div>
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import StatsGrid from "@/components/StatsGrid";
 import OrdersTable from "@/components/OrdersTable";
+import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./Dashboard.module.css";
 
 export default function Dashboard() {
@@ -170,6 +171,8 @@ export default function Dashboard() {
                       </svg>
                       <span>Generate Payment Link</span>
                     </Link>
+
+                    <FarcasterShareButton text="Managing my trustless escrow transactions on MoneePay (Quai Network)!" />
 
                     <Link href="/order/82hd91" className="btn btn-outlined" style={{ width: "100%", justifyContent: "flex-start" }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
