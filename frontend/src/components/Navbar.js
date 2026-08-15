@@ -38,10 +38,10 @@ export default function Navbar() {
         </div>
 
         <nav className={styles.navLinks}>
+          <a href="/dashboard" className={styles.link}>Dashboard</a>
+          <a href="/payroll" className={styles.link}>Team Payroll</a>
           <a href="#how-it-works" className={styles.link}>How It Works</a>
           <a href="#features" className={styles.link}>Features</a>
-          <a href="#teams" className={styles.link}>For Teams</a>
-          <a href="#docs" className={styles.link}>Docs</a>
         </nav>
 
         <div className={styles.actions}>

@@ -44,8 +44,8 @@ export default function Sidebar({ user = { name: "Doris", address: "0x7e83...4a2
       )
     },
     {
-      name: "Teams",
-      href: "#teams",
+      name: "Team Payroll",
+      href: "/payroll",
       icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
