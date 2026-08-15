@@ -1,6 +1,6 @@
 # MoneePay Core Use Cases & Platform Specification
 
-**Trustless Commerce, Task Bounties, and Team Payroll on Quai Network**
+**Trustless Commerce, Task Rewards, and Team Payroll on Quai Network**
 
 MoneePay is a smart-contract-powered escrow payment protocol built on the [Quai Network](https://qu.ai) and integrated as a native **Farcaster Frame v2 / Mini App**. 
 
@@ -9,7 +9,7 @@ MoneePay solves trust fragmentation in online transactions across **3 core pilla
 ---
 
 ## 📑 Table of Contents
-1. [Pillar 1: Freelance Bounties & Task Rewards](#1-freelance-bounties--task-rewards)
+1. [Pillar 1: Task Rewards & Milestone Escrows](#1-task-rewards--milestone-escrows)
 2. [Pillar 2: Peer-to-Peer Commerce & Product Sales](#2-peer-to-peer-commerce--product-sales)
 3. [Pillar 3: MoneePay for Teams (Corporate Payroll)](#3-moneepay-for-teams-corporate-payroll)
 4. [Quai Network Dual-Ledger Architecture (Qi & WQI)](#4-quai-network-dual-ledger-architecture-qi--wqi)
@@ -17,7 +17,7 @@ MoneePay solves trust fragmentation in online transactions across **3 core pilla
 
 ---
 
-## 1. Freelance Bounties & Task Rewards
+## 1. Task Rewards & Milestone Escrows
 
 ### The Problem
 Freelancers fear working on complex tasks without guaranteed payment; project creators fear paying upfront for incomplete or poor-quality work.
