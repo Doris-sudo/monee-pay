@@ -15,15 +15,28 @@ export default function OrgOnboardingModal({ isOpen, onClose, onRegister }) {
     e.preventDefault();
     if (!orgName) return;
 
+    const orgData = {
+      name: orgName,
+      domain: orgDomain || "web3.xyz",
+      treasury: treasuryAddr || "0x7e83...4a2c",
+      role: role || "Payroll Admin",
+    };
+
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("moneepay_active_org", JSON.stringify(orgData));
+      }
+    } catch (err) {
+      console.warn("Failed to save organization profile:", err);
+    }
+
     if (onRegister) {
-      onRegister({
-        name: orgName,
-        domain: orgDomain,
-        treasury: treasuryAddr,
-        role: role,
-      });
+      onRegister(orgData);
     }
     onClose();
+
+    // Redirect user to Corporate Dashboard / Organization Profile
+    window.location.href = `/dashboard?org=${encodeURIComponent(orgName)}&domain=${encodeURIComponent(orgDomain || 'web3.xyz')}&mode=corporate`;
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import StatsGrid from "@/components/StatsGrid";
@@ -12,6 +12,43 @@ export default function Dashboard() {
   // View Modes: 'connected' | 'corporate' | 'empty' | 'disconnected'
   const [viewState, setViewState] = useState("corporate");
   const [walletAddress] = useState("0x7e83...4a2c");
+  const [activeOrg, setActiveOrg] = useState({
+    name: "Web3 Jos",
+    domain: "acme.xyz",
+    treasury: "0x7e83...4a2c",
+    role: "Payroll Admin / Founder",
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlOrg = urlParams.get("org");
+      const urlDomain = urlParams.get("domain");
+      const urlMode = urlParams.get("mode");
+
+      if (urlMode) {
+        setViewState(urlMode);
+      }
+
+      if (urlOrg) {
+        setActiveOrg((prev) => ({
+          ...prev,
+          name: urlOrg,
+          domain: urlDomain || prev.domain,
+        }));
+      } else {
+        const saved = localStorage.getItem("moneepay_active_org");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed?.name) setActiveOrg(parsed);
+          } catch (e) {
+            console.warn("Failed to parse saved org profile:", e);
+          }
+        }
+      }
+    }
+  }, []);
 
   const individualOrders = [
     {
@@ -46,7 +83,7 @@ export default function Dashboard() {
   const corporateOrders = [
     {
       id: "CORP-1092",
-      parties: "Acme Treasury → 5 Employees",
+      parties: `${activeOrg.name} Treasury → 5 Employees`,
       amount: "1,800 Qi",
       status: "Batch Payroll Settled",
       statusType: "completed",
@@ -55,7 +92,7 @@ export default function Dashboard() {
     },
     {
       id: "CORP-1091",
-      parties: "Acme Treasury → TrailOfBits",
+      parties: `${activeOrg.name} Treasury → TrailOfBits`,
       amount: "1,200 Qi",
       status: "Milestone 2/3 (Audits)",
       statusType: "milestone",
@@ -64,7 +101,7 @@ export default function Dashboard() {
     },
     {
       id: "CORP-1090",
-      parties: "Acme Treasury → AWS Quai Node",
+      parties: `${activeOrg.name} Treasury → AWS Quai Node`,
       amount: "450 Qi",
       status: "Funded Escrow",
       statusType: "funded",
@@ -78,9 +115,9 @@ export default function Dashboard() {
   const activityFeed =
     viewState === "corporate"
       ? [
-          { id: "corp-1", text: "Batch Payroll of 1,800 Qi disbursed to 5 team members", amount: "-1,800 Qi", time: "15 mins ago", type: "out" },
-          { id: "corp-2", text: "Milestone 2 approved for TrailOfBits Auditor", amount: "-400 Qi", time: "3 hours ago", type: "out" },
-          { id: "corp-3", text: "Quai Treasury deposit received", amount: "+10,000 Qi", time: "Yesterday", type: "in" },
+          { id: "corp-1", text: `Batch Payroll of 1,800 Qi disbursed to 5 team members by ${activeOrg.name}`, amount: "-1,800 Qi", time: "15 mins ago", type: "out" },
+          { id: "corp-2", text: `Milestone 2 approved for TrailOfBits Auditor by ${activeOrg.name}`, amount: "-400 Qi", time: "3 hours ago", type: "out" },
+          { id: "corp-3", text: `${activeOrg.name} Treasury deposit received`, amount: "+10,000 Qi", time: "Yesterday", type: "in" },
           { id: "corp-4", text: "AWS Quai Node escrow contract created", amount: "450 Qi", time: "2 days ago", type: "info" },
         ]
       : [
@@ -91,15 +128,15 @@ export default function Dashboard() {
 
   return (
     <div className={styles.layoutContainer}>
-      <Sidebar user={{ name: viewState === "corporate" ? "Acme Web3 Corp" : "Doris", address: walletAddress }} />
+      <Sidebar user={{ name: viewState === "corporate" ? activeOrg.name : "Doris", address: activeOrg.treasury || walletAddress }} />
 
       <main className={styles.mainArea}>
         {/* Header */}
         <header className={styles.header}>
           <div className={styles.greetingGroup}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <h1 className={styles.greetingTitle}>
-                {viewState === "corporate" ? "🏢 Acme Web3 Corp Treasury Hub" : "Welcome back, Doris 👋"}
+                {viewState === "corporate" ? `🏢 ${activeOrg.name} Treasury Hub` : "Welcome back, Doris 👋"}
               </h1>
               {viewState === "corporate" && (
                 <span
@@ -107,19 +144,19 @@ export default function Dashboard() {
                     background: "rgba(0, 212, 170, 0.15)",
                     color: "#00D4AA",
                     border: "1px solid rgba(0, 212, 170, 0.3)",
-                    padding: "4px 10px",
+                    padding: "4px 12px",
                     borderRadius: "16px",
-                    fontSize: "0.78rem",
+                    fontSize: "0.82rem",
                     fontWeight: "600",
                   }}
                 >
-                  acme.xyz (Payroll Admin)
+                  {activeOrg.domain} ({activeOrg.role})
                 </span>
               )}
             </div>
             <p className={styles.greetingSub}>
               {viewState === "corporate"
-                ? "Manage corporate treasury, employee batch payrolls, vendor escrows, and audit logs."
+                ? `Manage corporate treasury, employee batch payrolls, vendor escrows, and audit logs for ${activeOrg.name}.`
                 : "Manage your active escrows, payments, and team stipends."}
             </p>
           </div>
@@ -160,7 +197,7 @@ export default function Dashboard() {
               <div className={styles.walletBadge}>
                 <span className={styles.greenDot} />
                 <span>
-                  Treasury: <strong className={styles.walletAddr}>{walletAddress}</strong>
+                  Treasury: <strong className={styles.walletAddr}>{activeOrg.treasury || walletAddress}</strong>
                 </span>
               </div>
             )}
@@ -193,7 +230,7 @@ export default function Dashboard() {
                 <div className={`${styles.ordersSection} glass-card`}>
                   <div className={styles.sectionHeader}>
                     <h2 className={styles.sectionTitle}>
-                      {viewState === "corporate" ? "Corporate Payrolls & Vendor Escrows" : "Active Orders"}
+                      {viewState === "corporate" ? `${activeOrg.name} Payrolls & Vendor Escrows` : "Active Orders"}
                     </h2>
                     <span className={styles.orderCount}>
                       {viewState === "empty" ? "0 Records" : `${ordersData.length} Active Records`}
@@ -207,7 +244,7 @@ export default function Dashboard() {
               <div className={styles.rightCol}>
                 <div className={`${styles.actionPanel} glass-card`}>
                   <h3 className={styles.panelTitle}>
-                    {viewState === "corporate" ? "Corporate Quick Actions" : "Quick Actions"}
+                    {viewState === "corporate" ? `${activeOrg.name} Quick Actions` : "Quick Actions"}
                   </h3>
                   <div className={styles.actionButtons}>
                     {viewState === "corporate" ? (
@@ -228,7 +265,7 @@ export default function Dashboard() {
                           <span>Create Contractor Escrow</span>
                         </Link>
 
-                        <FarcasterShareButton text="Acme Web3 Corp Treasury Hub powered by MoneePay on Quai Network!" />
+                        <FarcasterShareButton text={`${activeOrg.name} Corporate Treasury Hub powered by MoneePay on Quai Network!`} />
                       </>
                     ) : (
                       <>
@@ -249,7 +286,7 @@ export default function Dashboard() {
                 {/* Activity Feed */}
                 <div className={`${styles.activityPanel} glass-card`}>
                   <h3 className={styles.panelTitle}>
-                    {viewState === "corporate" ? "Corporate Audit Log" : "Recent Activity"}
+                    {viewState === "corporate" ? `${activeOrg.name} Audit Log` : "Recent Activity"}
                   </h3>
                   <div className={styles.activityList}>
                     {activityFeed.map((item) => (
