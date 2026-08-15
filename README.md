@@ -4,6 +4,8 @@
 
 > Buy with confidence. Get paid with certainty.
 
+For a detailed breakdown of core features and platform workflows, see [Use Cases & Platform Specification](USE_CASES.md).
+
 MoneePay is a smart-contract-powered escrow payment platform built on the [Quai Network](https://qu.ai) that lets buyers and sellers transact without requiring either party to fully trust the other. Funds are locked in a smart contract and released automatically when predefined conditions are met — no intermediary required.
 
 ---
