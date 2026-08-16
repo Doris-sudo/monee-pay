@@ -59,6 +59,8 @@ export default function Navbar() {
 
           <nav className={styles.navLinks}>
             <a href="/dashboard" className={styles.link}>Dashboard</a>
+            <a href="/marketplace" className={styles.link}>Marketplace</a>
+            <a href="/tasks" className={styles.link}>Tasks</a>
             {activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
             <a href="#how-it-works" className={styles.link}>How It Works</a>
             <a href="#features" className={styles.link}>Features</a>
