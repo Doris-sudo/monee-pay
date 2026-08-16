@@ -2,6 +2,7 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./OrderCheckout.module.css";
 
@@ -97,23 +98,13 @@ export default function OrderPage({ params }) {
   };
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={styles.layoutContainer}>
+      <Sidebar />
       <div className={styles.backgroundGlow} />
 
-      {/* Header */}
-      <header className={styles.checkoutHeader}>
-        <Link href="/dashboard" className={styles.brand}>
-          <div className={styles.logoIcon}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#00D4AA" strokeWidth="2"/>
-              <path d="M12 6L7 9V15L12 18L17 15V9L12 6Z" fill="#00D4AA"/>
-            </svg>
-          </div>
-          <span className={styles.brandName}>Monee<span style={{ color: "#00D4AA" }}>Pay</span></span>
-        </Link>
-
+      <main className={styles.mainArea}>
         {/* View Mode Switcher */}
-        <div className={styles.modeToggleGroup}>
+        <div className={styles.modeToggleGroup} style={{ marginBottom: "24px" }}>
           <button 
             className={`${styles.toggleBtn} ${viewMode === 'management' ? styles.toggleActive : ''}`}
             onClick={() => setViewMode("management")}
@@ -127,29 +118,7 @@ export default function OrderPage({ params }) {
             Buyer Checkout View
           </button>
         </div>
-      </header>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div style={{
-          position: "fixed",
-          top: "84px",
-          right: "24px",
-          zIndex: 100,
-          background: "rgba(10, 14, 26, 0.95)",
-          border: "1px solid #00D4AA",
-          color: "#00D4AA",
-          padding: "12px 20px",
-          borderRadius: "8px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-          fontWeight: "600",
-          fontSize: "0.9rem"
-        }}>
-          {toastMessage}
-        </div>
-      )}
-
-      <main className={styles.mainContent}>
         {viewMode === "management" ? (
           /* ================= ORDER MANAGEMENT VIEW ================= */
           <div className={styles.orderLayoutGrid}>

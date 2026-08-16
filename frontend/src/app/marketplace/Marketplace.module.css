@@ -2,60 +2,34 @@
    MoneePay — Marketplace Discovery Page
    ============================================= */
 
-.container {
+.layoutContainer {
   min-height: 100vh;
   background-color: var(--bg-primary);
-  position: relative;
-}
-
-/* Header */
-.topHeader {
+  color: var(--text-primary);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  border-bottom: var(--border-subtle);
-  background: rgba(15, 21, 40, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  position: sticky;
-  top: 0;
-  z-index: 50;
 }
 
-.backLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: color var(--transition-fast);
-}
-
-.backLink:hover {
-  color: var(--accent-teal);
-}
-
-.headerBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: rgba(0, 212, 170, 0.08);
-  border: 1px solid rgba(0, 212, 170, 0.2);
-  border-radius: var(--radius-full);
-  color: var(--accent-teal);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-/* Main Content Area */
+/* Main Area */
 .mainArea {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 40px 32px 80px;
+  flex: 1;
+  margin-left: 260px;
+  padding: 32px 40px 60px 40px;
+  min-width: 0;
+  transition: margin-left var(--transition-normal);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  gap: 24px;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* Page Title Section */
@@ -512,4 +486,18 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+@media (max-width: 900px) {
+  .mainArea {
+    margin-left: 80px;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mainArea {
+    margin-left: 0;
+    padding: 20px 16px 80px 16px;
+  }
 }

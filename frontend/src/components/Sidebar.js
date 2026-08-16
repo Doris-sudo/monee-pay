@@ -142,7 +142,9 @@ export default function Sidebar({ user = { name: "Doris", address: "0x7e83...4a2
       {/* Nav Menu */}
       <nav className={styles.nav}>
         {visibleNavItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive =
+            pathname === item.href ||
+            (item.name === "Orders" && pathname?.startsWith("/order/") && pathname !== "/order/create");
           return (
             <Link
               key={item.name}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./CreateOrder.module.css";
 
@@ -106,24 +107,10 @@ export default function CreateOrderPage() {
   const showMilestones = escrowType === "milestone" || (escrowType === "task_reward" && enableMilestones);
 
   return (
-    <div className={styles.container}>
-      <header className={styles.topHeader}>
-        <Link href="/dashboard" className={styles.backLink}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          <span>Back to Dashboard</span>
-        </Link>
+    <div className={styles.layoutContainer}>
+      <Sidebar />
 
-        <div className={styles.headerBadge}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          <span>Escrow Creation Wizard</span>
-        </div>
-      </header>
+      <main className={styles.mainArea}>
 
       {/* Toast Notification */}
       {toastVisible && (
@@ -138,7 +125,6 @@ export default function CreateOrderPage() {
       )}
 
       {/* Main Content */}
-      <main className={styles.mainArea}>
         <div className={styles.formCard}>
           {isCreated ? (
             /* ═══════════════════════════════════════════

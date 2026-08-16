@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import styles from "./Marketplace.module.css";
 
 const MOCK_PRODUCTS = [
@@ -156,25 +157,8 @@ export default function MarketplacePage() {
   const totalEscrowValue = MOCK_PRODUCTS.reduce((sum, p) => sum + p.price, 0);
 
   return (
-    <div className={styles.container}>
-      <header className={styles.topHeader}>
-        <Link href="/dashboard" className={styles.backLink}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          <span>Back to Dashboard</span>
-        </Link>
-
-        <div className={styles.headerBadge}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <path d="M16 10a4 4 0 0 1-8 0" />
-          </svg>
-          <span>Marketplace</span>
-        </div>
-      </header>
+    <div className={styles.layoutContainer}>
+      <Sidebar />
 
       <main className={styles.mainArea}>
         {/* Title Section */}

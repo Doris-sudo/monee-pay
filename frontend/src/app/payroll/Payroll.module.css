@@ -1,15 +1,16 @@
-.container {
+.layoutContainer {
   min-height: 100vh;
   background-color: var(--bg-primary, #0a0e1a);
   color: #ffffff;
-  font-family: var(--font-inter), sans-serif;
-  padding-bottom: 60px;
+  display: flex;
 }
 
 .mainArea {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 32px 24px;
+  flex: 1;
+  margin-left: 260px;
+  padding: 32px 40px 60px 40px;
+  min-width: 0;
+  transition: margin-left var(--transition-normal);
 }
 
 .headerSection {
@@ -328,4 +329,18 @@
   height: 100%;
   background: linear-gradient(90deg, #00d4aa 0%, #00b4d8 100%);
   transition: width 0.4s ease;
+}
+
+@media (max-width: 900px) {
+  .mainArea {
+    margin-left: 80px;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mainArea {
+    margin-left: 0;
+    padding: 20px 16px 80px 16px;
+  }
 }

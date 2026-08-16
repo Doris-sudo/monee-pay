@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./Payroll.module.css";
@@ -118,8 +118,8 @@ export default function PayrollPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <Navbar />
+    <div className={styles.layoutContainer}>
+      <Sidebar mode="corporate" />
 
       <main className={styles.mainArea}>
         {/* Header */}

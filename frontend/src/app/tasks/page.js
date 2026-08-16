@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import styles from "./Tasks.module.css";
 
 const MOCK_TASKS = [
@@ -190,24 +191,8 @@ export default function TasksPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <header className={styles.topHeader}>
-        <Link href="/dashboard" className={styles.backLink}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          <span>Back to Dashboard</span>
-        </Link>
-
-        <div className={styles.headerBadge}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4l3 3" />
-          </svg>
-          <span>Tasks & Rewards</span>
-        </div>
-      </header>
+    <div className={styles.layoutContainer}>
+      <Sidebar />
 
       <main className={styles.mainArea}>
         {/* Title Section */}
