@@ -4,10 +4,10 @@ export async function GET() {
   const manifest = {
     accountAssociation: {
       header:
-        "eyJmaWQiOjEsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhkOGNFQTYzNjkyZTVlRDI4YjE0NmRBNjM4YjE5Qjc0ZDg0YjE1RjE5In0",
+        "eyJmaWQiOjMzNDYxMDksInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgzMTdiMEQ5NDA4QmY5YWY4OWI4Mjc2MTI1RTM1RUU2REFjMTk1ZkNBIn0",
       payload: "eyJkb21haW4iOiJtb25lZXBheS54eXoifQ",
       signature:
-        "MHhjMGY1NzA0ZDQ5MDcwYjhhYmEwNjhhMzU1ZGU5M2JkOTU0MTliNzJjZmIxMjVjOGZkYTJjYzdmODhlMjQ1NjA1MWYxODMzZjFiNjExYzVhNDM5ZjYwZTI5NDAwNzg2MjhkYTQ3ZmM4YWFlZTFjZDc1NGU4Yzk1NjRlMTJkMjQwYTFj",
+        "vVRnEUrqj5YmCPLHpDL+m4Y43ILaNzDSQhoSZL7gl4ZS4DCpPYD6F/WfmyhI06BhHCKjDIaf8FDRRoYwVL1Plxs=",
     },
     frame: {
       version: "1",
