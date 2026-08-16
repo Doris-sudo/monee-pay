@@ -20,6 +20,32 @@
   margin-bottom: 32px;
 }
 
+.modeBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: fit-content;
+}
+
+.modeIndividual {
+  background: rgba(0, 180, 216, 0.1);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 180, 216, 0.25);
+}
+
+.modeCorporate {
+  background: rgba(0, 212, 170, 0.1);
+  color: var(--accent-teal);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+}
+
 .brandLink {
   display: flex;
   align-items: center;

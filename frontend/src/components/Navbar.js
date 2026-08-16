@@ -16,6 +16,10 @@ export default function Navbar() {
   const handleWalletConnect = (walletName) => {
     setWalletConnected(true);
     setAddress("0x7e83...4a2c");
+    // Navigate to individual dashboard (not corporate)
+    if (typeof window !== "undefined") {
+      window.location.href = "/dashboard?mode=connected";
+    }
   };
 
   const handleToggleWallet = () => {
@@ -55,7 +59,7 @@ export default function Navbar() {
 
           <nav className={styles.navLinks}>
             <a href="/dashboard" className={styles.link}>Dashboard</a>
-            <a href="/payroll" className={styles.link}>Team Payroll</a>
+            {activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
             <a href="#how-it-works" className={styles.link}>How It Works</a>
             <a href="#features" className={styles.link}>Features</a>
           </nav>
