@@ -7,8 +7,8 @@ import OrgOnboardingModal from "./OrgOnboardingModal";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
-  const [walletConnected, setWalletConnected] = useState(true);
-  const [address, setAddress] = useState("0x7e8...4a2c");
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [address, setAddress] = useState("");
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [activeOrg, setActiveOrg] = useState(null); // { name, domain, treasury, role }
@@ -58,37 +58,53 @@ export default function Navbar() {
           </div>
 
           <nav className={styles.navLinks}>
-            <a href="/dashboard" className={styles.link}>Dashboard</a>
+            {walletConnected ? (
+              <a href="/dashboard" className={styles.link}>Dashboard</a>
+            ) : (
+              <button
+                className={styles.linkGated}
+                onClick={() => setIsWalletModalOpen(true)}
+                title="Connect wallet to access Dashboard"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Dashboard
+              </button>
+            )}
             <a href="/marketplace" className={styles.link}>Marketplace</a>
             <a href="/tasks" className={styles.link}>Tasks</a>
-            {activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
+            {walletConnected && activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
             <a href="#how-it-works" className={styles.link}>How It Works</a>
             <a href="#features" className={styles.link}>Features</a>
           </nav>
 
           <div className={styles.actions}>
-            {/* Corporate Workspace Switcher */}
-            {activeOrg ? (
-              <button
-                className="btn btn-outlined btn-sm"
-                onClick={() => setIsOrgModalOpen(true)}
-                style={{
-                  borderColor: "rgba(0, 212, 170, 0.4)",
-                  color: "#00D4AA",
-                  background: "rgba(0, 212, 170, 0.08)",
-                  fontSize: "0.82rem",
-                }}
-              >
-                🏢 {activeOrg.name}
-              </button>
-            ) : (
-              <button
-                className="btn btn-outlined btn-sm"
-                onClick={() => setIsOrgModalOpen(true)}
-                style={{ fontSize: "0.82rem" }}
-              >
-                + Join as Corporate
-              </button>
+            {/* Corporate Workspace Switcher — only visible when wallet connected */}
+            {walletConnected && (
+              activeOrg ? (
+                <button
+                  className="btn btn-outlined btn-sm"
+                  onClick={() => setIsOrgModalOpen(true)}
+                  style={{
+                    borderColor: "rgba(0, 212, 170, 0.4)",
+                    color: "#00D4AA",
+                    background: "rgba(0, 212, 170, 0.08)",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  🏢 {activeOrg.name}
+                </button>
+              ) : (
+                <button
+                  className="btn btn-outlined btn-sm"
+                  onClick={() => setIsOrgModalOpen(true)}
+                  style={{ fontSize: "0.82rem" }}
+                >
+                  + Join as Corporate
+                </button>
+              )
             )}
 
             <FarcasterAddFrameButton />
