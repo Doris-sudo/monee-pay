@@ -1,28 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./CreateOrder.module.css";
 
 export default function CreateOrderPage() {
-  const router = useRouter();
   // Escrow Types: 'task_reward' | 'product_sale' | 'milestone'
   const [escrowType, setEscrowType] = useState("task_reward");
-  const [copied, setCopied] = useState(false);
 
   // Form Fields
   const [title, setTitle] = useState("");
-  const [counterparty, setCounterparty] = useState("");
   const [description, setDescription] = useState("");
   const [totalAmount, setTotalAmount] = useState("500");
   const [deadlineDays, setDeadlineDays] = useState("7");
 
-  // Milestones State
+  // Milestones State (available for task_reward and milestone types)
+  const [enableMilestones, setEnableMilestones] = useState(false);
   const [milestones, setMilestones] = useState([
-    { id: 1, title: "Milestone 1: Discovery & Initial Deliverable", percent: 40 },
-    { id: 2, title: "Milestone 2: Final Verification & Handover", percent: 60 },
+    { id: 1, title: "Discovery & Initial Deliverable", percent: 40 },
+    { id: 2, title: "Final Verification & Handover", percent: 60 },
   ]);
 
   // Submission State
@@ -30,11 +27,26 @@ export default function CreateOrderPage() {
   const [isCreated, setIsCreated] = useState(false);
   const [createdOrderLink, setCreatedOrderLink] = useState("");
 
+  // Toast State
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastKey, setToastKey] = useState(0);
+
+  // Reset milestones toggle when switching escrow types
+  useEffect(() => {
+    if (escrowType === "milestone") {
+      setEnableMilestones(true);
+    } else {
+      setEnableMilestones(false);
+    }
+  }, [escrowType]);
+
+  const totalPercent = milestones.reduce((acc, curr) => acc + curr.percent, 0);
+
   const handleAddMilestone = () => {
-    const nextId = milestones.length + 1;
+    const nextId = milestones.length > 0 ? Math.max(...milestones.map((m) => m.id)) + 1 : 1;
     setMilestones([
       ...milestones,
-      { id: nextId, title: `Milestone ${nextId}: New Task Tranche`, percent: 20 },
+      { id: nextId, title: `New Task Tranche`, percent: 10 },
     ]);
   };
 
@@ -48,7 +60,11 @@ export default function CreateOrderPage() {
   };
 
   const handleMilestonePercentChange = (id, newPercent) => {
-    setMilestones(milestones.map((m) => (m.id === id ? { ...m, percent: Number(newPercent) || 0 } : m)));
+    setMilestones(
+      milestones.map((m) =>
+        m.id === id ? { ...m, percent: Math.min(100, Math.max(0, Number(newPercent) || 0)) } : m
+      )
+    );
   };
 
   const handleSubmitOrder = (e) => {
@@ -59,18 +75,35 @@ export default function CreateOrderPage() {
       setIsSubmitting(false);
       setIsCreated(true);
       const generatedId = Math.random().toString(36).substring(2, 8);
-      const domain = typeof window !== "undefined" ? window.location.origin : "https://www.moneepay.xyz";
+      const domain =
+        typeof window !== "undefined" ? window.location.origin : "https://www.moneepay.xyz";
       setCreatedOrderLink(`${domain}/order/${generatedId}`);
-    }, 1200);
+    }, 1500);
   };
 
   const handleCopyLink = () => {
     if (navigator.clipboard && createdOrderLink) {
       navigator.clipboard.writeText(createdOrderLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setToastKey((k) => k + 1);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2200);
     }
   };
+
+  const handleCreateAnother = () => {
+    setIsCreated(false);
+    setTitle("");
+    setDescription("");
+    setTotalAmount("500");
+    setDeadlineDays("7");
+    setEnableMilestones(false);
+    setMilestones([
+      { id: 1, title: "Discovery & Initial Deliverable", percent: 40 },
+      { id: 2, title: "Final Verification & Handover", percent: 60 },
+    ]);
+  };
+
+  const showMilestones = escrowType === "milestone" || (escrowType === "task_reward" && enableMilestones);
 
   return (
     <div className={styles.container}>
@@ -92,11 +125,25 @@ export default function CreateOrderPage() {
         </div>
       </header>
 
+      {/* Toast Notification */}
+      {toastVisible && (
+        <div className={styles.toastWrapper} key={toastKey}>
+          <div className={styles.toast}>
+            <svg className={styles.toastIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Link copied to clipboard
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className={styles.mainArea}>
         <div className={styles.formCard}>
           {isCreated ? (
-            /* SUCCESS STATE & CREATED VIEW CARD */
+            /* ═══════════════════════════════════════════
+               POST-CREATION LIVE CARD DISPLAY
+               ═══════════════════════════════════════════ */
             <div className={styles.createdSuccess}>
               <div className={styles.createdIcon}>
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="3">
@@ -115,54 +162,104 @@ export default function CreateOrderPage() {
               <p className={styles.createdSub}>
                 {escrowType === "task_reward"
                   ? `Your Task Reward of ${totalAmount} Qi is locked in smart escrow. Solvers can now complete your task and claim rewards upon deliverable approval.`
-                  : `Your product listing "${title || "Item"}" priced at ${totalAmount} Qi is live. Share the protected checkout link with buyers.`}
+                  : escrowType === "product_sale"
+                  ? `Your product listing "${title || "Item"}" priced at ${totalAmount} Qi is live. Share the protected checkout link with buyers.`
+                  : `Your milestone escrow of ${totalAmount} Qi is deployed. Funds unlock tranche-by-tranche as milestones are verified.`}
               </p>
 
-              {/* Created Item Preview Card */}
-              <div
-                style={{
-                  background: "rgba(255, 255, 255, 0.04)",
-                  border: "1px solid rgba(0, 212, 170, 0.3)",
-                  borderRadius: "14px",
-                  padding: "20px",
-                  margin: "20px 0",
-                  textAlign: "left",
-                  width: "100%",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                  <span style={{ fontSize: "0.78rem", fontWeight: "700", color: "#00D4AA", textTransform: "uppercase" }}>
-                    {escrowType === "task_reward" ? "Active Task Reward" : "Protected Product Listing"}
-                  </span>
-                  <span style={{ fontSize: "0.75rem", background: "rgba(0, 212, 170, 0.15)", color: "#00D4AA", padding: "2px 8px", borderRadius: "10px" }}>
-                    Escrow Locked
-                  </span>
+              {/* ── Interactive Live Card ── */}
+              <div className={styles.liveCard} id="live-task-card">
+                <div className={styles.liveCardHeader}>
+                  <div className={styles.statusBadge}>
+                    <span className={styles.statusDot} />
+                    {escrowType === "task_reward"
+                      ? "Active Task Reward"
+                      : escrowType === "product_sale"
+                      ? "Protected Product Listing"
+                      : "Active Milestone Escrow"}
+                  </div>
+                  <span className={styles.escrowBadge}>Escrow Locked</span>
                 </div>
 
-                <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#ffffff", margin: "0 0 6px 0" }}>
-                  {title || "Untitled Task / Product"}
-                </h3>
+                <div className={styles.liveCardBody}>
+                  <h3 className={styles.liveCardTitle}>
+                    {title || "Untitled Task"}
+                  </h3>
 
-                <div style={{ display: "flex", gap: "16px", fontSize: "0.88rem", color: "#94a3b8" }}>
-                  <span>
-                    Total Lockup: <strong style={{ color: "#00D4AA" }}>{totalAmount} Qi</strong>
-                  </span>
-                  <span>
-                    Deadline: <strong>{deadlineDays} Days</strong>
-                  </span>
+                  <div className={styles.liveCardMeta}>
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Total Lockup</span>
+                      <span className={`${styles.metaValue} ${styles.metaValueAccent}`}>
+                        {totalAmount} Qi
+                      </span>
+                    </div>
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Deadline</span>
+                      <span className={styles.metaValue}>
+                        {deadlineDays} {Number(deadlineDays) === 1 ? "Day" : "Days"} Remaining
+                      </span>
+                    </div>
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>Escrow Type</span>
+                      <span className={styles.metaValue}>
+                        {escrowType === "task_reward"
+                          ? "Task Reward (WQI)"
+                          : escrowType === "product_sale"
+                          ? "Product Sale (WQI)"
+                          : "Milestone (WQI)"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Milestone Breakdown */}
+                  {showMilestones && milestones.length > 0 && (
+                    <>
+                      <hr className={styles.liveCardDivider} />
+                      <div className={styles.liveCardMilestones}>
+                        <span className={styles.deliverablesLabel}>Milestone Tranches</span>
+                        {milestones.map((m, idx) => (
+                          <div key={m.id} className={styles.liveMilestoneRow}>
+                            <span className={styles.liveMilestoneIndex}>{idx + 1}</span>
+                            <span className={styles.liveMilestoneTitle}>{m.title}</span>
+                            <span className={styles.liveMilestonePercent}>{m.percent}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Deliverables & Criteria */}
+                  {description && (
+                    <>
+                      <hr className={styles.liveCardDivider} />
+                      <div className={styles.liveCardDeliverables}>
+                        <span className={styles.deliverablesLabel}>
+                          {escrowType === "task_reward"
+                            ? "Solver Criteria & Deliverables"
+                            : "Description & Requirements"}
+                        </span>
+                        <p className={styles.deliverablesText}>{description}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Share Box */}
+              {/* ── Share Box ── */}
               <div className={styles.linkShareBox}>
                 <span className={styles.shareUrl}>{createdOrderLink}</span>
-                <button className={styles.copyBtn} onClick={handleCopyLink}>
-                  {copied ? "Copied!" : "Copy Link"}
+                <button className={styles.copyBtn} onClick={handleCopyLink} id="copy-share-link">
+                  Copy Share Link
                 </button>
               </div>
 
-              <div style={{ display: "flex", gap: "12px", width: "100%", marginTop: "16px", flexWrap: "wrap" }}>
-                <Link href="/order/82hd91" className="btn btn-primary" style={{ flex: 1 }}>
+              {/* ── Action Buttons ── */}
+              <div className={styles.actionsRow}>
+                <Link
+                  href={`/order/${createdOrderLink.split("/").pop()}`}
+                  className={`${styles.actionBtn} ${styles.actionPrimary}`}
+                  id="view-live-task"
+                >
                   View Live {escrowType === "task_reward" ? "Task Reward" : "Listing"}
                 </Link>
 
@@ -173,17 +270,27 @@ export default function CreateOrderPage() {
                       : `🛒 Product Listing: ${title || "Item"} (${totalAmount} Qi)! Buy safely on MoneePay:`
                   }
                   url={createdOrderLink}
-                  buttonText={escrowType === "task_reward" ? "Share Task to Farcaster" : "Share Listing to Farcaster"}
+                  buttonText={
+                    escrowType === "task_reward"
+                      ? "Share Task to Farcaster"
+                      : "Share Listing to Farcaster"
+                  }
                 />
 
-                <button className="btn btn-outlined" onClick={() => setIsCreated(false)} style={{ flex: 1 }}>
+                <button
+                  className={`${styles.actionBtn} ${styles.actionOutlined}`}
+                  onClick={handleCreateAnother}
+                  id="create-another"
+                >
                   Create Another
                 </button>
               </div>
             </div>
           ) : (
-            /* FORM STATE */
-            <form onSubmit={handleSubmitOrder}>
+            /* ═══════════════════════════════════════════
+               CREATION FORM
+               ═══════════════════════════════════════════ */
+            <form onSubmit={handleSubmitOrder} id="task-reward-form">
               <div className={styles.formTitleGroup}>
                 <h1 className={styles.formTitle}>Create Smart Contract Escrow</h1>
                 <p className={styles.formSub}>
@@ -196,6 +303,7 @@ export default function CreateOrderPage() {
                 <div
                   className={`${styles.typeCard} ${escrowType === "task_reward" ? styles.typeActive : ""}`}
                   onClick={() => setEscrowType("task_reward")}
+                  id="type-task-reward"
                 >
                   <div className={styles.typeCardHeader}>
                     <span className={styles.typeName}>🎯 Task Reward Escrow</span>
@@ -209,6 +317,7 @@ export default function CreateOrderPage() {
                 <div
                   className={`${styles.typeCard} ${escrowType === "product_sale" ? styles.typeActive : ""}`}
                   onClick={() => setEscrowType("product_sale")}
+                  id="type-product-sale"
                 >
                   <div className={styles.typeCardHeader}>
                     <span className={styles.typeName}>🛒 Product Sales Escrow</span>
@@ -222,6 +331,7 @@ export default function CreateOrderPage() {
                 <div
                   className={`${styles.typeCard} ${escrowType === "milestone" ? styles.typeActive : ""}`}
                   onClick={() => setEscrowType("milestone")}
+                  id="type-milestone"
                 >
                   <div className={styles.typeCardHeader}>
                     <span className={styles.typeName}>🤝 Milestone Project</span>
@@ -235,21 +345,23 @@ export default function CreateOrderPage() {
 
               {/* Form Inputs */}
               <div className={styles.formSection}>
+                {/* Task Title */}
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>
+                  <label className={styles.inputLabel} htmlFor="task-title">
                     {escrowType === "task_reward"
-                      ? "Task Reward Title"
+                      ? "Task Title"
                       : escrowType === "product_sale"
                       ? "Product Name / Item Title"
                       : "Project Title"}
                   </label>
                   <input
+                    id="task-title"
                     type="text"
                     required
                     className={styles.textInput}
                     placeholder={
                       escrowType === "task_reward"
-                        ? "e.g. Audit Smart Contract or Build React UI Component"
+                        ? "e.g. Audit Smart Contract or Build React Component"
                         : escrowType === "product_sale"
                         ? "e.g. MacBook Pro 16 M4 Max"
                         : "e.g. Protocol Upgrade Phase 1"
@@ -259,16 +371,18 @@ export default function CreateOrderPage() {
                   />
                 </div>
 
+                {/* Amount + Deadline Row */}
                 <div className={styles.gridTwo}>
                   <div className={styles.inputGroup}>
                     <div className={styles.labelRow}>
-                      <label className={styles.inputLabel}>
-                        {escrowType === "task_reward" ? "Qi Reward Deposit" : "Escrow Price (Qi)"}
+                      <label className={styles.inputLabel} htmlFor="reward-deposit">
+                        {escrowType === "task_reward" ? "Reward Deposit (Qi)" : "Escrow Price (Qi)"}
                       </label>
                       <span className={styles.inputSub}>Wrapped Qi (WQI)</span>
                     </div>
                     <div className={styles.amountPrefixGroup}>
                       <input
+                        id="reward-deposit"
                         type="number"
                         required
                         min="1"
@@ -281,9 +395,12 @@ export default function CreateOrderPage() {
                   </div>
 
                   <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Delivery / Completion Window</label>
+                    <label className={styles.inputLabel} htmlFor="completion-window">
+                      Completion Window
+                    </label>
                     <div className={styles.amountPrefixGroup}>
                       <input
+                        id="completion-window"
                         type="number"
                         required
                         min="1"
@@ -297,35 +414,73 @@ export default function CreateOrderPage() {
                   </div>
                 </div>
 
-                {escrowType === "milestone" && (
-                  <div className={styles.milestoneSection}>
+                {/* Milestone Tranches Toggle (for task_reward) */}
+                {escrowType === "task_reward" && (
+                  <div className={styles.inputGroup}>
+                    <label
+                      className={styles.inputLabel}
+                      style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enableMilestones}
+                        onChange={(e) => setEnableMilestones(e.target.checked)}
+                        style={{ accentColor: "#00D4AA", width: "16px", height: "16px" }}
+                        id="enable-milestones"
+                      />
+                      Enable Milestone Tranches (Optional)
+                    </label>
+                  </div>
+                )}
+
+                {/* Milestone Builder */}
+                {showMilestones && (
+                  <div className={styles.milestoneSection} id="milestone-builder">
                     <div className={styles.milestoneHeader}>
                       <label className={styles.inputLabel}>Milestone Tranches</label>
-                      <span className={styles.milestoneSumBadge}>
-                        Total: {milestones.reduce((acc, curr) => acc + curr.percent, 0)}%
+                      <span
+                        className={`${styles.milestoneSumBadge} ${
+                          totalPercent === 100 ? styles.milestoneSumValid : styles.milestoneSumInvalid
+                        }`}
+                      >
+                        Total: {totalPercent}%
                       </span>
                     </div>
 
-                    {milestones.map((m) => (
+                    {milestones.map((m, idx) => (
                       <div key={m.id} className={styles.milestoneRow}>
-                        <span className={styles.milestoneNum}>#{m.id}</span>
-                        <input
-                          type="text"
-                          className={styles.textInput}
-                          value={m.title}
-                          onChange={(e) => handleMilestoneTitleChange(m.id, e.target.value)}
-                        />
-                        <div style={{ position: "relative" }}>
+                        <span className={styles.milestoneNum}>{idx + 1}</span>
+
+                        <div className={styles.milestoneBody}>
                           <input
-                            type="number"
+                            type="text"
                             className={styles.textInput}
-                            value={m.percent}
-                            onChange={(e) => handleMilestonePercentChange(m.id, e.target.value)}
+                            value={m.title}
+                            onChange={(e) => handleMilestoneTitleChange(m.id, e.target.value)}
+                            placeholder="Milestone description..."
                           />
-                          <span style={{ position: "absolute", right: "8px", top: "10px", fontSize: "0.75rem", color: "#64748B" }}>
-                            %
-                          </span>
+                          <div className={styles.milestoneSliderRow}>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={m.percent}
+                              onChange={(e) => handleMilestonePercentChange(m.id, e.target.value)}
+                              className={styles.trancheSlider}
+                              style={{
+                                background: `linear-gradient(to right, rgba(0, 212, 170, 0.5) 0%, rgba(0, 212, 170, 0.5) ${m.percent}%, rgba(255, 255, 255, 0.08) ${m.percent}%, rgba(255, 255, 255, 0.08) 100%)`,
+                              }}
+                            />
+                            <span className={styles.tranchePercent}>{m.percent}%</span>
+                          </div>
+                          <div className={styles.trancheBar}>
+                            <div
+                              className={styles.trancheBarFill}
+                              style={{ width: `${m.percent}%` }}
+                            />
+                          </div>
                         </div>
+
                         <button
                           type="button"
                           className={styles.deleteBtn}
@@ -337,19 +492,26 @@ export default function CreateOrderPage() {
                       </div>
                     ))}
 
-                    <button type="button" className={styles.addMilestoneBtn} onClick={handleAddMilestone}>
+                    <button
+                      type="button"
+                      className={styles.addMilestoneBtn}
+                      onClick={handleAddMilestone}
+                      id="add-milestone"
+                    >
                       + Add Milestone Tranche
                     </button>
                   </div>
                 )}
 
+                {/* Description / Deliverables */}
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>
+                  <label className={styles.inputLabel} htmlFor="deliverables">
                     {escrowType === "task_reward"
-                      ? "Task Instructions & Deliverable Criteria"
+                      ? "Deliverables & Instructions"
                       : "Item Description & Delivery Requirements"}
                   </label>
                   <textarea
+                    id="deliverables"
                     className={styles.textareaInput}
                     placeholder={
                       escrowType === "task_reward"
@@ -374,14 +536,21 @@ export default function CreateOrderPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="btn btn-primary"
-                  style={{ width: "100%", padding: "16px", fontSize: "1rem" }}
+                  className={styles.deployBtn}
+                  id="deploy-task-reward"
                 >
-                  {isSubmitting
-                    ? "Deploying Escrow Contract..."
-                    : escrowType === "task_reward"
-                    ? `Deploy Task Reward (${totalAmount || 0} Qi)`
-                    : `Deploy Product Escrow (${totalAmount || 0} Qi)`}
+                  {isSubmitting ? (
+                    <>
+                      <span className={styles.spinner} />
+                      Deploying Escrow Contract...
+                    </>
+                  ) : escrowType === "task_reward" ? (
+                    `Deploy Task Reward (${totalAmount || 0} Qi)`
+                  ) : escrowType === "product_sale" ? (
+                    `Deploy Product Escrow (${totalAmount || 0} Qi)`
+                  ) : (
+                    `Deploy Milestone Escrow (${totalAmount || 0} Qi)`
+                  )}
                 </button>
               </div>
             </form>
