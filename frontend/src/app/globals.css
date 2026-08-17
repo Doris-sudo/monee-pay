@@ -76,14 +76,14 @@ a {
 /* Common Utilities */
 .gradient-text {
   background: var(--gradient-primary);
-  -webkit-background-clip: text;
+  -webkit-background-clip-: text;
   -webkit-text-fill-color: transparent;
 }
 
 .glass-card {
   background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  -webkit-backdrop-filter-: blur(16px);
+  -webkit-backdrop-filter-: blur(16px);
   border: var(--border-glass);
   border-radius: var(--radius-md);
   transition: all var(--transition-normal);
