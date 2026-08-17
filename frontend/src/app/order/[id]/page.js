@@ -2,31 +2,13 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
+import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./OrderCheckout.module.css";
-import Button from "@/components/ui/Button";
-import "./create.css";
-
-function Select() {
-  const [form, setForm] = useState(false)
-  {
-    form && (
-      <div>
-        <h2>Product Listing Creation Form</h2>
-
-        <input type="text" placeholder="Product name"/>
-        <input type="text" placeholder="500Qi"/>
-        <select>
-          <option value={"Delivery window(deadline)"}></option>
-        </select>
-        <input type="text" placeholder="Item specs and Shipping terms"/>
-
-      </div>
-    )
-  }
-}
-
+import "./create.css"
 export default function OrderPage({ params }) {
+
+  const [showForm, setShowForm] = useState()
   const resolvedParams = params ? use(params) : { id: "82hd91" };
   const orderId = resolvedParams.id || "82hd91";
 
@@ -47,7 +29,6 @@ export default function OrderPage({ params }) {
   ]);
 
   // Timeline Event Feed State
-
   const [timeline, setTimeline] = useState([
     { id: 1, title: "Order created & escrow contract deployed", time: "Aug 10, 2026", type: "system" },
     { id: 2, title: "Deposit of 1,200 Qi wrapped & locked in escrow", time: "Aug 10, 2026", type: "deposit" },
@@ -57,9 +38,9 @@ export default function OrderPage({ params }) {
 
   // Buyer Checkout State
   const [payState, setPayState] = useState("connected");
+  const [processingStep, setProcessingStep] = useState(1);
   const [walletAddress] = useState("0x7e83...4a2c");
   const [txHash, setTxHash] = useState("");
-
 
   // Action: Release Payment
   const handleReleasePayment = () => {
@@ -120,23 +101,13 @@ export default function OrderPage({ params }) {
   };
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={styles.layoutContainer}>
+      <Sidebar />
       <div className={styles.backgroundGlow} />
 
-      {/* Header */}
-      <header className={styles.checkoutHeader}>
-        <Link href="/dashboard" className={styles.brand}>
-          <div className={styles.logoIcon}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#00D4AA" strokeWidth="2" />
-              <path d="M12 6L7 9V15L12 18L17 15V9L12 6Z" fill="#00D4AA" />
-            </svg>
-          </div>
-          <span className={styles.brandName}>Monee<span style={{ color: "#00D4AA" }}>Pay</span></span>
-        </Link>
-
+      <main className={styles.mainArea}>
         {/* View Mode Switcher */}
-        <div className={styles.modeToggleGroup}>
+        <div className={styles.modeToggleGroup} style={{ marginBottom: "24px" }}>
           <button
             className={`${styles.toggleBtn} ${viewMode === 'management' ? styles.toggleActive : ''}`}
             onClick={() => setViewMode("management")}
@@ -150,29 +121,7 @@ export default function OrderPage({ params }) {
             Buyer Checkout View
           </button>
         </div>
-      </header>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div style={{
-          position: "fixed",
-          top: "84px",
-          right: "24px",
-          zIndex: 100,
-          background: "rgba(10, 14, 26, 0.95)",
-          border: "1px solid #00D4AA",
-          color: "#00D4AA",
-          padding: "12px 20px",
-          borderRadius: "8px",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-          fontWeight: "600",
-          fontSize: "0.9rem"
-        }}>
-          {toastMessage}
-        </div>
-      )}
-
-      <main className={styles.mainContent}>
         {viewMode === "management" ? (
           /* ================= ORDER MANAGEMENT VIEW ================= */
           <div className={styles.orderLayoutGrid}>
@@ -341,109 +290,139 @@ export default function OrderPage({ params }) {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div>
+                  <button className="create" onClick={() => setShowForm(true)}>Create</button>
+                </div>
+              </div>
+
+            </div>
+
+            {showForm && (
+              <div className="form">
+                <div className="insideform0">
+                  <h2 className="product">Product Listing and Creation Form</h2>
+
+                  <input className="insideform1" type="text" placeholder="Product name" required/> <br />
+                  <input className="insideform2" type="Number" placeholder="Price in escrow" required/><br />
+                  <div> 
+                    <input className="insideform3" type="text" placeholder="Delivery window" required/>
+                    <select className= "window">
+                      <option value="">Days</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                    </select>
+                  </div>
+                  <input className="insideform4" type="text" placeholder="Item specs and shipping terms" required/>
+                </div>
+
+                <button className="create" onClick={() => setShowForm(false)} required>Submit</button>
+              </div>
+              
+            )}
+
+            {/* Right Column: Financial & Contract Info */}
+            <div className={styles.rightCol}>
+              <div className={`${styles.infoCard} glass-card`}>
+                <h3 className={styles.actionsTitle}>Escrow Summary</h3>
+
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Total Deposit Value</span>
+                  <span className={styles.infoVal} style={{ color: "#00D4AA", fontSize: "1.1rem" }}>1,200 Qi</span>
+                </div>
+
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Wrapped Asset</span>
+                  <span className={styles.infoVal}>1,200 WQI</span>
+                </div>
+
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Protocol Markup Fee</span>
+                  <span className={styles.infoVal} style={{ color: "#00D4AA" }}>0% (Zero Fee)</span>
+                </div>
+
+                <div className={styles.divider} />
+
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Released to Date</span>
+                  <span className={styles.infoVal}>
+                    {milestones.filter(m => m.status === "completed").length * 400} Qi
+                  </span>
+                </div>
+
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>Remaining Locked</span>
+                  <span className={styles.infoVal}>
+                    {1200 - (milestones.filter(m => m.status === "completed").length * 400)} Qi
+                  </span>
+                </div>
+
+                <div className={styles.divider} />
+
+                <div style={{ fontSize: "0.8rem", color: "#64748B", lineHeight: "1.4" }}>
+                  🔒 <strong>Smart Contract Protection:</strong>
+                  Funds are secured on the Quai Network EVM ledger until explicit buyer approval or dispute settlement.
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        ) : (
+          /* ================= BUYER CHECKOUT VIEW ================= */
+          <div className={`${styles.checkoutCard} glass-card`}>
+            {payState === "success" ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#00D4AA", marginBottom: "8px" }}>Payment Locked in Escrow!</h2>
+                <p style={{ color: "#94A3B8", marginBottom: "20px" }}>Your payment of 500 Qi has been secured in smart contract escrow.</p>
+                <button className="btn btn-primary" onClick={() => setViewMode("management")} style={{ width: "100%" }}>
+                  View Order Management
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className={styles.productHeader}>
+                  <div className={styles.productIconBox}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="2">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                      <line x1="8" y1="21" x2="16" y2="21" />
+                    </svg>
+                  </div>
                   <div>
-                    <button className="create" onclick={() => { setForm(true) }}>Create</button>
-                  </div>
-
-                </div>
-
-                {/* Right Column: Financial & Contract Info */}
-                <div className={styles.rightCol}>
-                  <div className={`${styles.infoCard} glass-card`}>
-                    <h3 className={styles.actionsTitle}>Escrow Summary</h3>
-
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Total Deposit Value</span>
-                      <span className={styles.infoVal} style={{ color: "#00D4AA", fontSize: "1.1rem" }}>1,200 Qi</span>
-                    </div>
-
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Wrapped Asset</span>
-                      <span className={styles.infoVal}>1,200 WQI</span>
-                    </div>
-
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Protocol Markup Fee</span>
-                      <span className={styles.infoVal} style={{ color: "#00D4AA" }}>0% (Zero Fee)</span>
-                    </div>
-
-                    <div className={styles.divider} />
-
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Released to Date</span>
-                      <span className={styles.infoVal}>
-                        {milestones.filter(m => m.status === "completed").length * 400} Qi
-                      </span>
-                    </div>
-
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Remaining Locked</span>
-                      <span className={styles.infoVal}>
-                        {1200 - (milestones.filter(m => m.status === "completed").length * 400)} Qi
-                      </span>
-                    </div>
-
-                    <div className={styles.divider} />
-
-                    <div style={{ fontSize: "0.8rem", color: "#64748B", lineHeight: "1.4" }}>
-                      🔒 <strong>Smart Contract Protection:</strong>
-                      Funds are secured on the Quai Network EVM ledger until explicit buyer approval or dispute settlement.
-                    </div>
+                    <h1 style={{ fontSize: "1.3rem", fontWeight: "800", color: "#fff" }}>MacBook Pro M4 (16-inch)</h1>
+                    <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Seller: Bob's Electronics</span>
                   </div>
                 </div>
 
-              </div>
-
-              ) : (
-              /* ================= BUYER CHECKOUT VIEW ================= */
-              <div className={`${styles.checkoutCard} glass-card`}>
-                {payState === "success" ? (
-                  <div style={{ textAlign: "center", padding: "20px 0" }}>
-                    <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#00D4AA", marginBottom: "8px" }}>Payment Locked in Escrow!</h2>
-                    <p style={{ color: "#94A3B8", marginBottom: "20px" }}>Your payment of 500 Qi has been secured in smart contract escrow.</p>
-                    <button className="btn btn-primary" onClick={() => setViewMode("management")} style={{ width: "100%" }}>
-                      View Order Management
-                    </button>
+                <div className={styles.priceBanner}>
+                  <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Amount Due</span>
+                  <div className={styles.priceValue}>
+                    <span className={styles.amount}>500</span>
+                    <span className={styles.currency}>Qi</span>
                   </div>
-                ) : (
-                  <>
-                    <div className={styles.productHeader}>
-                      <div className={styles.productIconBox}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="2">
-                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                          <line x1="8" y1="21" x2="16" y2="21" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h1 style={{ fontSize: "1.3rem", fontWeight: "800", color: "#fff" }}>MacBook Pro M4 (16-inch)</h1>
-                        <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Seller: Bob's Electronics</span>
-                      </div>
-                    </div>
+                </div>
 
-                    <div className={styles.priceBanner}>
-                      <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Amount Due</span>
-                      <div className={styles.priceValue}>
-                        <span className={styles.amount}>500</span>
-                        <span className={styles.currency}>Qi</span>
-                      </div>
-                    </div>
-
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleExecuteEscrowPayment}
-                      style={{ width: "100%", padding: "16px", fontSize: "1rem" }}
-                    >
-                      Pay & Escrow 500 Qi
-                    </button>
-                  </>
-                )}
-              </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleExecuteEscrowPayment}
+                  style={{ width: "100%", padding: "16px", fontSize: "1rem" }}
+                >
+                  Pay & Escrow 500 Qi
+                </button>
+              </>
+            )}
+          </div>
         )}
 
-              <p className={styles.footerNote}>
-                Powered by Quai Network • Protected by Smart Contract Escrow • Order ID: #{orderId}
-              </p>
-            </main>
-          </div>
-        );
+        <p className={styles.footerNote}>
+          Powered by Quai Network • Protected by Smart Contract Escrow • Order ID: #{orderId}
+        </p>
+      </main>
+    </div>
+  );
 }
