@@ -7,6 +7,8 @@ import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./OrderCheckout.module.css";
 import "./create.css"
 export default function OrderPage({ params }) {
+
+  const [showForm, setShowForm] = useState()
   const resolvedParams = params ? use(params) : { id: "82hd91" };
   const orderId = resolvedParams.id || "82hd91";
 
@@ -289,12 +291,40 @@ export default function OrderPage({ params }) {
                     </div>
                   ))}
                 </div>
-              <div>
-                <button className="create">Click me</button>
-              </div>
+                <div>
+                  <button className="create" onClick={() => setShowForm(true)}>Create</button>
+                </div>
               </div>
 
             </div>
+
+            {showForm && (
+              <div className="form">
+                <div className="insideform0">
+                  <h2 className="product">Product Listing and Creation Form</h2>
+
+                  <input className="insideform1" type="text" placeholder="Product name" required/> <br />
+                  <input className="insideform2" type="Number" placeholder="Price in escrow" required/><br />
+                  <div> 
+                    <input className="insideform3" type="text" placeholder="Delivery window" required/>
+                    <select className= "window">
+                      <option value="">Days</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                    </select>
+                  </div>
+                  <input className="insideform4" type="text" placeholder="Item specs and shipping terms" required/>
+                </div>
+
+                <button className="create" onClick={() => setShowForm(false)} required>Submit</button>
+              </div>
+              
+            )}
 
             {/* Right Column: Financial & Contract Info */}
             <div className={styles.rightCol}>
