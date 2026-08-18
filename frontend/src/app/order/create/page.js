@@ -6,6 +6,7 @@ import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./CreateOrder.module.css";
 
+
 export default function CreateOrderPage() {
   // Escrow Types: 'task_reward' | 'product_sale' | 'milestone'
   const [escrowType, setEscrowType] = useState("task_reward");
