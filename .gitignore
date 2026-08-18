@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.*
+
+# Next.js & Frontend Build Outputs
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+
+# Foundry / Smart Contract Build Artifacts
+contracts/cache/
+contracts/out/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Testing & Coverage
+coverage/
+*.lcov
+
+# Debug Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS & Editor Files
+.DS_Store
+*.pem
+.idea/
+.vscode/
+*.tsbuildinfo
