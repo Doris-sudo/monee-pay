@@ -33,35 +33,20 @@
   font-size: 0.95rem;
 }
 
+.orgRoleBadge {
+  background: rgba(0, 212, 170, 0.15);
+  color: #00D4AA;
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .headerRight {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.demoStateToggle {
-  display: flex;
-  background: rgba(255, 255, 255, 0.04);
-  border: var(--border-glass);
-  border-radius: var(--radius-sm);
-  padding: 3px;
-}
-
-.toggleBtn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.toggleActive {
-  background: var(--gradient-primary);
-  color: #050A14;
 }
 
 .walletBadge {
@@ -87,56 +72,6 @@
 
 .walletAddr {
   font-family: monospace;
-}
-
-/* Stats Row */
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.statCard {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-}
-
-.statLabel {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.statValueGroup {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.statValue {
-  font-family: var(--font-heading);
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--accent-teal);
-  letter-spacing: -0.02em;
-}
-
-.statBadge {
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(0, 212, 170, 0.15);
-  color: var(--accent-teal);
-  font-weight: 700;
-}
-
-.statSub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
 }
 
 /* Content Grid Layout */
@@ -171,6 +106,82 @@
   color: var(--text-secondary);
 }
 
+/* Quick Actions & Activity Panels */
+.actionPanel, .activityPanel {
+  padding: 20px;
+}
+
+.panelTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 212, 170, 0.4);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.activityContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activityText {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.activityTime {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.activityAmount {
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.amountIn {
+  color: var(--accent-teal);
+}
+
 /* Disconnected Wallet Fallback Card */
 .disconnectedCard {
   text-align: center;
@@ -192,13 +203,58 @@
   margin-bottom: 16px;
 }
 
+/* ── Upgrade to Corporate Prompt ── */
+.upgradeCard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  border: 1px solid rgba(0, 212, 170, 0.15) !important;
+  background: rgba(0, 212, 170, 0.03) !important;
+}
+
+.upgradeIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 212, 170, 0.1);
+  border: 1px solid rgba(0, 212, 170, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.upgradeTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.upgradeDesc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.upgradeLink {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-teal);
+  margin-top: 4px;
+  transition: opacity var(--transition-fast);
+}
+
+.upgradeLink:hover {
+  opacity: 0.8;
+}
+
 /* Responsiveness */
 @media (max-width: 1200px) {
   .contentGrid {
     grid-template-columns: 1fr;
-  }
-  .statsRow {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -213,9 +269,6 @@
   .mainArea {
     margin-left: 0;
     padding: 20px 16px 80px 16px;
-  }
-  .statsRow {
-    grid-template-columns: 1fr;
   }
   .header {
     flex-direction: column;

@@ -9,8 +9,8 @@ import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./Dashboard.module.css";
 
 export default function Dashboard() {
-  // View Modes: 'connected' | 'corporate' | 'empty' | 'disconnected'
-  const [viewState, setViewState] = useState("corporate");
+  // View Modes: 'connected' (individual) | 'corporate' | 'empty' | 'disconnected'
+  const [viewState, setViewState] = useState("connected");
   const [walletAddress] = useState("0x7e83...4a2c");
   const [activeOrg, setActiveOrg] = useState({
     name: "Web3 Jos",
@@ -26,29 +26,43 @@ export default function Dashboard() {
       const urlDomain = urlParams.get("domain");
       const urlMode = urlParams.get("mode");
 
-      if (urlMode) {
-        setViewState(urlMode);
-      }
+      // Check if user has a saved org profile → corporate mode
+      const saved = localStorage.getItem("moneepay_active_org");
+      let hasCorporateProfile = false;
+      let parsedOrg = null;
 
-      if (urlOrg) {
-        setActiveOrg((prev) => ({
-          ...prev,
-          name: urlOrg,
-          domain: urlDomain || prev.domain,
-        }));
-      } else {
-        const saved = localStorage.getItem("moneepay_active_org");
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed?.name) setActiveOrg(parsed);
-          } catch (e) {
-            console.warn("Failed to parse saved org profile:", e);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed?.name) {
+            parsedOrg = parsed;
+            hasCorporateProfile = true;
           }
+        } catch (e) {
+          console.warn("Failed to parse saved org profile:", e);
         }
       }
+
+      // Determine view state
+      const targetMode = urlMode || (hasCorporateProfile || urlOrg ? "corporate" : "connected");
+
+      queueMicrotask(() => {
+        if (urlOrg) {
+          setActiveOrg((prev) => ({
+            ...prev,
+            name: urlOrg,
+            domain: urlDomain || prev.domain,
+          }));
+        } else if (parsedOrg) {
+          setActiveOrg(parsedOrg);
+        }
+        setViewState(targetMode);
+      });
     }
   }, []);
+
+  const isCorporate = viewState === "corporate";
+  const isIndividual = viewState === "connected" || viewState === "empty";
 
   const individualOrders = [
     {
@@ -110,25 +124,27 @@ export default function Dashboard() {
     },
   ];
 
-  const ordersData = viewState === "corporate" ? corporateOrders : individualOrders;
+  const ordersData = isCorporate ? corporateOrders : individualOrders;
 
-  const activityFeed =
-    viewState === "corporate"
-      ? [
-          { id: "corp-1", text: `Batch Payroll of 1,800 Qi disbursed to 5 team members by ${activeOrg.name}`, amount: "-1,800 Qi", time: "15 mins ago", type: "out" },
-          { id: "corp-2", text: `Milestone 2 approved for TrailOfBits Auditor by ${activeOrg.name}`, amount: "-400 Qi", time: "3 hours ago", type: "out" },
-          { id: "corp-3", text: `${activeOrg.name} Treasury deposit received`, amount: "+10,000 Qi", time: "Yesterday", type: "in" },
-          { id: "corp-4", text: "AWS Quai Node escrow contract created", amount: "450 Qi", time: "2 days ago", type: "info" },
-        ]
-      : [
-          { id: "act-1", text: "Order #MNP-0042 funded by Alice", amount: "+500 Qi", time: "10 mins ago", type: "in" },
-          { id: "act-2", text: "Milestone 2 approved for Order #MNP-0040", amount: "+400 Qi", time: "2 hours ago", type: "in" },
-          { id: "act-3", text: "Payment released for Order #MNP-0038", amount: "-450 Qi", time: "Yesterday", type: "out" },
-        ];
+  const activityFeed = isCorporate
+    ? [
+        { id: "corp-1", text: `Batch Payroll of 1,800 Qi disbursed to 5 team members by ${activeOrg.name}`, amount: "-1,800 Qi", time: "15 mins ago", type: "out" },
+        { id: "corp-2", text: `Milestone 2 approved for TrailOfBits Auditor by ${activeOrg.name}`, amount: "-400 Qi", time: "3 hours ago", type: "out" },
+        { id: "corp-3", text: `${activeOrg.name} Treasury deposit received`, amount: "+10,000 Qi", time: "Yesterday", type: "in" },
+        { id: "corp-4", text: "AWS Quai Node escrow contract created", amount: "450 Qi", time: "2 days ago", type: "info" },
+      ]
+    : [
+        { id: "act-1", text: "Order #MNP-0042 funded by Alice", amount: "+500 Qi", time: "10 mins ago", type: "in" },
+        { id: "act-2", text: "Milestone 2 approved for Order #MNP-0040", amount: "+400 Qi", time: "2 hours ago", type: "in" },
+        { id: "act-3", text: "Payment released for Order #MNP-0038", amount: "-450 Qi", time: "Yesterday", type: "out" },
+      ];
 
   return (
     <div className={styles.layoutContainer}>
-      <Sidebar user={{ name: viewState === "corporate" ? activeOrg.name : "Doris", address: activeOrg.treasury || walletAddress }} />
+      <Sidebar
+        user={{ name: isCorporate ? activeOrg.name : "Doris", address: activeOrg.treasury || walletAddress }}
+        mode={isCorporate ? "corporate" : "individual"}
+      />
 
       <main className={styles.mainArea}>
         {/* Header */}
@@ -136,68 +152,32 @@ export default function Dashboard() {
           <div className={styles.greetingGroup}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <h1 className={styles.greetingTitle}>
-                {viewState === "corporate" ? `🏢 ${activeOrg.name} Treasury Hub` : "Welcome back, Doris 👋"}
+                {isCorporate ? `🏢 ${activeOrg.name} Treasury Hub` : "Welcome back, Doris 👋"}
               </h1>
-              {viewState === "corporate" && (
-                <span
-                  style={{
-                    background: "rgba(0, 212, 170, 0.15)",
-                    color: "#00D4AA",
-                    border: "1px solid rgba(0, 212, 170, 0.3)",
-                    padding: "4px 12px",
-                    borderRadius: "16px",
-                    fontSize: "0.82rem",
-                    fontWeight: "600",
-                  }}
-                >
+              {isCorporate && (
+                <span className={styles.orgRoleBadge}>
                   {activeOrg.domain} ({activeOrg.role})
                 </span>
               )}
             </div>
             <p className={styles.greetingSub}>
-              {viewState === "corporate"
+              {isCorporate
                 ? `Manage corporate treasury, employee batch payrolls, vendor escrows, and audit logs for ${activeOrg.name}.`
-                : "Manage your active escrows, payments, and team stipends."}
+                : "Manage your active escrows, payments, and task rewards."}
             </p>
           </div>
 
           <div className={styles.headerRight}>
-            <div className={styles.demoStateToggle}>
-              <button
-                className={`${styles.toggleBtn} ${viewState === "corporate" ? styles.toggleActive : ""}`}
-                onClick={() => setViewState("corporate")}
-              >
-                Corporate Hub
-              </button>
-              <button
-                className={`${styles.toggleBtn} ${viewState === "connected" ? styles.toggleActive : ""}`}
-                onClick={() => setViewState("connected")}
-              >
-                Individual
-              </button>
-              <button
-                className={`${styles.toggleBtn} ${viewState === "empty" ? styles.toggleActive : ""}`}
-                onClick={() => setViewState("empty")}
-              >
-                Empty State
-              </button>
-              <button
-                className={`${styles.toggleBtn} ${viewState === "disconnected" ? styles.toggleActive : ""}`}
-                onClick={() => setViewState("disconnected")}
-              >
-                Disconnected
-              </button>
-            </div>
-
             {viewState === "disconnected" ? (
-              <button className="btn btn-primary btn-sm" onClick={() => setViewState("corporate")}>
+              <button className="btn btn-primary btn-sm" onClick={() => setViewState("connected")}>
                 Connect Wallet
               </button>
             ) : (
               <div className={styles.walletBadge}>
                 <span className={styles.greenDot} />
                 <span>
-                  Treasury: <strong className={styles.walletAddr}>{activeOrg.treasury || walletAddress}</strong>
+                  {isCorporate ? "Treasury: " : "Wallet: "}
+                  <strong className={styles.walletAddr}>{activeOrg.treasury || walletAddress}</strong>
                 </span>
               </div>
             )}
@@ -213,24 +193,24 @@ export default function Dashboard() {
               </svg>
             </div>
             <h2>Wallet Disconnected</h2>
-            <p>Please connect your Pelagus Wallet to view your active corporate treasury and manage team payrolls.</p>
-            <button className="btn btn-primary" onClick={() => setViewState("corporate")} style={{ marginTop: "16px" }}>
+            <p>Please connect your Pelagus Wallet to view your escrows and manage payments.</p>
+            <button className="btn btn-primary" onClick={() => setViewState("connected")} style={{ marginTop: "16px" }}>
               Connect Wallet
             </button>
           </div>
         ) : (
           <>
-            {/* Corporate / Individual Stats Row */}
+            {/* Stats Row */}
             <StatsGrid viewState={viewState} />
 
             {/* Main Content Grid */}
             <div className={styles.contentGrid}>
-              {/* Left Column: Orders & Payroll Table */}
+              {/* Left Column: Orders Table */}
               <div className={styles.leftCol}>
                 <div className={`${styles.ordersSection} glass-card`}>
                   <div className={styles.sectionHeader}>
                     <h2 className={styles.sectionTitle}>
-                      {viewState === "corporate" ? `${activeOrg.name} Payrolls & Vendor Escrows` : "Active Orders"}
+                      {isCorporate ? `${activeOrg.name} Payrolls & Vendor Escrows` : "Active Orders"}
                     </h2>
                     <span className={styles.orderCount}>
                       {viewState === "empty" ? "0 Records" : `${ordersData.length} Active Records`}
@@ -240,14 +220,14 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Right Column: Corporate Quick Actions & Activity Feed */}
+              {/* Right Column: Quick Actions & Activity Feed */}
               <div className={styles.rightCol}>
                 <div className={`${styles.actionPanel} glass-card`}>
                   <h3 className={styles.panelTitle}>
-                    {viewState === "corporate" ? `${activeOrg.name} Quick Actions` : "Quick Actions"}
+                    {isCorporate ? `${activeOrg.name} Quick Actions` : "Quick Actions"}
                   </h3>
                   <div className={styles.actionButtons}>
-                    {viewState === "corporate" ? (
+                    {isCorporate ? (
                       <>
                         <Link href="/payroll" className="btn btn-primary" style={{ width: "100%", justifyContent: "flex-start" }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -283,10 +263,31 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* Upgrade to Corporate Prompt (individual only) */}
+                {isIndividual && (
+                  <div className={`${styles.upgradeCard} glass-card`}>
+                    <div className={styles.upgradeIcon}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                    <h4 className={styles.upgradeTitle}>Unlock Corporate Features</h4>
+                    <p className={styles.upgradeDesc}>
+                      Register your organization to access batch payroll, treasury management, and vendor escrows.
+                    </p>
+                    <Link href="/?openOrg=true" className={styles.upgradeLink}>
+                      Register as Corporate →
+                    </Link>
+                  </div>
+                )}
+
                 {/* Activity Feed */}
                 <div className={`${styles.activityPanel} glass-card`}>
                   <h3 className={styles.panelTitle}>
-                    {viewState === "corporate" ? `${activeOrg.name} Audit Log` : "Recent Activity"}
+                    {isCorporate ? `${activeOrg.name} Audit Log` : "Recent Activity"}
                   </h3>
                   <div className={styles.activityList}>
                     {activityFeed.map((item) => (

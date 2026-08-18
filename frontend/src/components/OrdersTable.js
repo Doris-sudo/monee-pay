@@ -17,7 +17,7 @@ export default function OrdersTable({ ordersData = [], viewState = "connected" }
           </svg>
         </div>
         <h3>No Orders Yet</h3>
-        <p>You haven't created or received any escrow orders yet.</p>
+        <p>You haven&apos;t created or received any escrow orders yet.</p>
         <button className="btn btn-primary" style={{ marginTop: "16px" }}>
           Create First Escrow Order
         </button>

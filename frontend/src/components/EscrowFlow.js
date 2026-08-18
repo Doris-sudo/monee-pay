@@ -56,7 +56,7 @@ export default function EscrowFlow() {
           <span className={styles.sectionTag}>AUTOMATED ESCROW ENGINE</span>
           <h2 className={styles.heading}>How MoneePay Guarantees Safety</h2>
           <p className={styles.subheading}>
-            Powered by Quai Network's dual-ledger architecture. Click a stage to explore the flow.
+            Powered by Quai Network&apos;s dual-ledger architecture. Click a stage to explore the flow.
           </p>
         </div>
 

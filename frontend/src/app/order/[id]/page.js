@@ -46,9 +46,9 @@ export default function OrderPage({ params }) {
   const handleReleasePayment = () => {
     setOrderStatus("completed");
     setMilestones(milestones.map(m => ({ ...m, status: "completed" })));
-    setTimeline([
-      ...timeline,
-      { id: Date.now(), title: "Full escrow funds (1,200 Qi) released to seller", time: "Just now", type: "release" }
+    setTimeline(prev => [
+      ...prev,
+      { id: prev.length + 1, title: "Full escrow funds (1,200 Qi) released to seller", time: "Just now", type: "release" }
     ]);
     showToast("✓ Escrow funds successfully released to seller!");
   };
@@ -64,21 +64,23 @@ export default function OrderPage({ params }) {
       } else {
         setOrderStatus("completed");
       }
+      const title = updated[activeIdx].title;
+      const amount = updated[activeIdx].amount;
       setMilestones(updated);
-      setTimeline([
-        ...timeline,
-        { id: Date.now(), title: `${updated[activeIdx].title} approved (${updated[activeIdx].amount} released)`, time: "Just now", type: "release" }
+      setTimeline(prev => [
+        ...prev,
+        { id: prev.length + 1, title: `${title} approved (${amount} released)`, time: "Just now", type: "release" }
       ]);
-      showToast(`✓ Approved ${updated[activeIdx].title}! Funds released.`);
+      showToast(`✓ Approved ${title}! Funds released.`);
     }
   };
 
   // Action: Open Dispute
   const handleOpenDispute = () => {
     setOrderStatus("disputed");
-    setTimeline([
-      ...timeline,
-      { id: Date.now(), title: "Dispute opened by Buyer. Escrow funds frozen.", time: "Just now", type: "dispute" }
+    setTimeline(prev => [
+      ...prev,
+      { id: prev.length + 1, title: "Dispute opened by Buyer. Escrow funds frozen.", time: "Just now", type: "dispute" }
     ]);
     showToast("⚠️ Dispute initiated. Funds are frozen until resolution.");
   };
@@ -395,7 +397,7 @@ export default function OrderPage({ params }) {
                   </div>
                   <div>
                     <h1 style={{ fontSize: "1.3rem", fontWeight: "800", color: "#fff" }}>MacBook Pro M4 (16-inch)</h1>
-                    <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Seller: Bob's Electronics</span>
+                    <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Seller: Bob&apos;s Electronics</span>
                   </div>
                 </div>
 
