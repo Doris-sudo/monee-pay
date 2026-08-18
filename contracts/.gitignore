@@ -5,6 +5,9 @@ artifacts/
 typechain/
 typechain-types/
 
+# Libraries (installed via npm package @openzeppelin/contracts)
+lib/openzeppelin-contracts/
+
 # Deployment & Broadcast Logs
 broadcast/
 
