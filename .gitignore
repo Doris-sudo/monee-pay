@@ -11,11 +11,18 @@ out/
 frontend/out/
 build/
 
-# Foundry / Smart Contract Build Artifacts
+# Foundry & Smart Contract Build Artifacts
+cache/
 contracts/cache/
+out/
 contracts/out/
+contracts/broadcast/
+contracts/artifacts/
+contracts/typechain/
+contracts/typechain-types/
+gas-report.txt
 
-# Environment Variables & Secrets
+# Environment Variables & Secrets (Private Keys, RPC URLs, API Keys)
 .env
 .env.*
 !.env.example
