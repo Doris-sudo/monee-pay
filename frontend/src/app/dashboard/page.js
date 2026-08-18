@@ -29,12 +29,13 @@ export default function Dashboard() {
       // Check if user has a saved org profile → corporate mode
       const saved = localStorage.getItem("moneepay_active_org");
       let hasCorporateProfile = false;
+      let parsedOrg = null;
 
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
           if (parsed?.name) {
-            setActiveOrg(parsed);
+            parsedOrg = parsed;
             hasCorporateProfile = true;
           }
         } catch (e) {
@@ -42,25 +43,21 @@ export default function Dashboard() {
         }
       }
 
-      // URL params override — corporate onboarding redirect
-      if (urlOrg) {
-        setActiveOrg((prev) => ({
-          ...prev,
-          name: urlOrg,
-          domain: urlDomain || prev.domain,
-        }));
-        hasCorporateProfile = true;
-      }
-
       // Determine view state
-      if (urlMode) {
-        setViewState(urlMode);
-      } else if (hasCorporateProfile) {
-        setViewState("corporate");
-      } else {
-        // Default: individual connected wallet
-        setViewState("connected");
-      }
+      const targetMode = urlMode || (hasCorporateProfile || urlOrg ? "corporate" : "connected");
+
+      queueMicrotask(() => {
+        if (urlOrg) {
+          setActiveOrg((prev) => ({
+            ...prev,
+            name: urlOrg,
+            domain: urlDomain || prev.domain,
+          }));
+        } else if (parsedOrg) {
+          setActiveOrg(parsedOrg);
+        }
+        setViewState(targetMode);
+      });
     }
   }, []);
 

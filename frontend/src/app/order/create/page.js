@@ -32,14 +32,6 @@ export default function CreateOrderPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastKey, setToastKey] = useState(0);
 
-  // Reset milestones toggle when switching escrow types
-  useEffect(() => {
-    if (escrowType === "milestone") {
-      setEnableMilestones(true);
-    } else {
-      setEnableMilestones(false);
-    }
-  }, [escrowType]);
 
   const totalPercent = milestones.reduce((acc, curr) => acc + curr.percent, 0);
 

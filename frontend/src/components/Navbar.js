@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import WalletModal from "./WalletModal";
 import OrgOnboardingModal from "./OrgOnboardingModal";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
+  const router = useRouter();
   const [walletConnected, setWalletConnected] = useState(false);
   const [address, setAddress] = useState("");
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -17,9 +20,7 @@ export default function Navbar() {
     setWalletConnected(true);
     setAddress("0x7e83...4a2c");
     // Navigate to individual dashboard (not corporate)
-    if (typeof window !== "undefined") {
-      window.location.href = "/dashboard?mode=connected";
-    }
+    router.push("/dashboard?mode=connected");
   };
 
   const handleToggleWallet = () => {
@@ -52,14 +53,14 @@ export default function Navbar() {
                 </defs>
               </svg>
             </div>
-            <a href="/" style={{ textDecoration: "none", color: "inherit" }}>
+            <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
               <span className={styles.logoText}>Monee<span className={styles.logoHighlight}>Pay</span></span>
-            </a>
+            </Link>
           </div>
 
           <nav className={styles.navLinks}>
             {walletConnected ? (
-              <a href="/dashboard" className={styles.link}>Dashboard</a>
+              <Link href="/dashboard" className={styles.link}>Dashboard</Link>
             ) : (
               <button
                 className={styles.linkGated}

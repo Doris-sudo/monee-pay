@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./OrgOnboardingModal.module.css";
 
 export default function OrgOnboardingModal({ isOpen, onClose, onRegister }) {
+  const router = useRouter();
   const [orgName, setOrgName] = useState("Acme Web3 Corp");
   const [orgDomain, setOrgDomain] = useState("acme.xyz");
   const [treasuryAddr, setTreasuryAddr] = useState("0x7e83...4a2c");
@@ -36,7 +38,7 @@ export default function OrgOnboardingModal({ isOpen, onClose, onRegister }) {
     onClose();
 
     // Redirect user to Corporate Dashboard / Organization Profile
-    window.location.href = `/dashboard?org=${encodeURIComponent(orgName)}&domain=${encodeURIComponent(orgDomain || 'web3.xyz')}&mode=corporate`;
+    router.push(`/dashboard?org=${encodeURIComponent(orgName)}&domain=${encodeURIComponent(orgDomain || 'web3.xyz')}&mode=corporate`);
   };
 
   return (
