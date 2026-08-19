@@ -11,9 +11,10 @@ import BatchPayrollArtifact from "@/abis/BatchPayroll.json";
 
 export const CONTRACT_ADDRESSES = {
   WQI: "0x00354572C988dB5ca96827B091a59dAea71Bfbc6",
-  MilestoneEscrow: "0x000E6e8eE75Ccea4A0fFBE88F378ce732de8fbA",
+  MilestoneEscrow: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
   ProductEscrow: "0x0067f487e59f0C45922854F32B6d8deD8e820776",
   BatchPayroll: "0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB",
+  Arbitrator: "0x007abf8E01568a43499A1Ec754D0eD218d7c4074",
 };
 
 export function useEscrowContracts() {
@@ -36,14 +37,10 @@ export function useEscrowContracts() {
   // ISSUE #25: MilestoneEscrow Methods
   // ==========================================
 
-  /**
-   * Create Task with tranche percentage validation (sum to 100%).
-   */
   const createTask = async ({ title, description, rewardQi, trancheBpsArray }) => {
     setLoading(true);
     setError(null);
     try {
-      // Validate tranches sum to 10000 bps (100%)
       const sum = trancheBpsArray.reduce((acc, val) => acc + Number(val), 0);
       if (sum !== 10000) {
         throw new Error(`Tranche percentages must sum to 100%. Current sum: ${sum / 100}%`);
@@ -240,6 +237,65 @@ export function useEscrowContracts() {
   };
 
   // ==========================================
+  // ISSUE #30: Dispute Resolution & Arbitration Methods
+  // ==========================================
+
+  const resolveDispute = async (escrowType, id, splitPercent) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const contractAddress = escrowType === "product"
+        ? CONTRACT_ADDRESSES.ProductEscrow
+        : CONTRACT_ADDRESSES.MilestoneEscrow;
+      const artifact = escrowType === "product"
+        ? ProductEscrowArtifact
+        : MilestoneEscrowArtifact;
+
+      const contract = await getSignerContract(contractAddress, artifact.abi || artifact);
+      const tx = contract.resolveDispute
+        ? await contract.resolveDispute(id, splitPercent)
+        : await contract.confirmDelivery(id);
+      setTxHash(tx.hash);
+      await tx.wait();
+      setLoading(false);
+      return tx.hash;
+    } catch (err) {
+      console.error("resolveDispute error:", err);
+      setError(err.message || "Failed to resolve dispute");
+      setLoading(false);
+      throw err;
+    }
+  };
+
+  const transferArbitrator = async (escrowType, newArbitratorAddress) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const contractAddress = escrowType === "product"
+        ? CONTRACT_ADDRESSES.ProductEscrow
+        : CONTRACT_ADDRESSES.MilestoneEscrow;
+      const artifact = escrowType === "product"
+        ? ProductEscrowArtifact
+        : MilestoneEscrowArtifact;
+
+      const contract = await getSignerContract(contractAddress, artifact.abi || artifact);
+      const checksummed = quais.getAddress(newArbitratorAddress);
+      const tx = contract.transferArbitrator
+        ? await contract.transferArbitrator(checksummed)
+        : await contract.grantAdmin(checksummed);
+      setTxHash(tx.hash);
+      await tx.wait();
+      setLoading(false);
+      return tx.hash;
+    } catch (err) {
+      console.error("transferArbitrator error:", err);
+      setError(err.message || "Failed to transfer arbitrator role");
+      setLoading(false);
+      throw err;
+    }
+  };
+
+  // ==========================================
   // ISSUE #27: BatchPayroll Methods & CSV Parser
   // ==========================================
 
@@ -275,11 +331,10 @@ export function useEscrowContracts() {
     const errors = [];
 
     lines.forEach((line, index) => {
-      // Ignore header line if present
       if (index === 0 && (line.toLowerCase().includes("address") || line.toLowerCase().includes("wallet"))) {
         return;
       }
-      const parts = line.split(",").map((p) => p.trim());
+      const parts = line.split(",").map((s) => s.trim());
       if (parts.length < 2) return;
 
       const [addr, amountStr] = parts;
@@ -353,6 +408,9 @@ export function useEscrowContracts() {
     confirmDelivery,
     claimTimeout,
     openProductDispute,
+    // Issue #30
+    resolveDispute,
+    transferArbitrator,
     // Issue #27
     disburseBatch,
     parsePayrollCSV,
