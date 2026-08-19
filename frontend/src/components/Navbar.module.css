@@ -3,7 +3,7 @@
   top: 0;
   z-index: 100;
   width: 100%;
-  background: rgba(10, 14, 26, 0.9);
+  background: rgba(10, 14, 26, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -12,19 +12,19 @@
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
-  margin-right: 16px;
+  margin-right: 12px;
   flex-shrink: 0;
 }
 
@@ -32,16 +32,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   background: rgba(0, 212, 170, 0.1);
-  border: 1px solid rgba(0, 212, 170, 0.2);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  flex-shrink: 0;
 }
 
 .logoText {
   font-family: var(--font-heading);
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.02em;
@@ -103,7 +104,7 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
   position: relative;
 }
@@ -128,6 +129,11 @@
   box-shadow: 0 0 8px var(--accent-teal);
 }
 
+.farcasterAddWrapper {
+  display: flex;
+  align-items: center;
+}
+
 /* Connected Wallet Menu Dropdown */
 .walletMenuWrapper {
   position: relative;
@@ -140,9 +146,9 @@
   background: rgba(0, 212, 170, 0.08);
   border: 1px solid rgba(0, 212, 170, 0.3);
   color: #00D4AA;
-  padding: 8px 16px;
+  padding: 8px 14px;
   border-radius: 8px;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -276,22 +282,22 @@
 /* HAMBURGER BUTTON FOR MOBILE & MINI APP FRAMES */
 .hamburgerBtn {
   display: none;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #F8FAFC;
-  width: 40px;
-  height: 40px;
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  color: #00D4AA;
+  width: 38px;
+  height: 38px;
   border-radius: 8px;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .hamburgerBtn:hover {
-  background: rgba(0, 212, 170, 0.15);
-  border-color: rgba(0, 212, 170, 0.3);
-  color: #00D4AA;
+  background: rgba(0, 212, 170, 0.25);
+  border-color: #00D4AA;
 }
 
 /* MOBILE NAVIGATION DRAWER */
@@ -301,12 +307,12 @@
   left: 0;
   width: 100%;
   background: #0F172A;
-  border-bottom: 1px solid rgba(0, 212, 170, 0.25);
-  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0, 212, 170, 0.3);
+  padding: 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+  gap: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
   animation: drawerSlide 0.2s ease-out;
   z-index: 999;
 }
@@ -325,14 +331,14 @@
 .mobileNavLinks {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .mobileLink {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #CBD5E1;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -351,6 +357,9 @@
 .mobileFooterActions {
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* RESPONSIVE MEDIA QUERIES */
@@ -362,13 +371,14 @@
     display: none;
   }
   .hamburgerBtn {
-    display: flex;
+    display: flex !important;
   }
 }
 
 @media (max-width: 600px) {
   .container {
-    padding: 10px 14px;
+    padding: 10px 12px;
+    gap: 8px;
   }
   .logoText {
     font-size: 1.15rem;
@@ -376,5 +386,14 @@
   .logoIcon {
     width: 32px;
     height: 32px;
+  }
+  .farcasterAddWrapper {
+    display: none; /* Collapses into mobile drawer for narrow frame viewports */
+  }
+  .connectTextDesk {
+    display: none; /* Shows compact wallet icon on small mobile screens */
+  }
+  .hamburgerBtn {
+    display: flex !important;
   }
 }

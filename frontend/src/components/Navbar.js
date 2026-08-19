@@ -7,11 +7,13 @@ import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import WalletModal from "./WalletModal";
 import OrgOnboardingModal from "./OrgOnboardingModal";
 import { useWallet } from "@/hooks/useWallet";
+import { useFarcaster } from "./FarcasterProvider";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { isFrame } = useFarcaster();
   const {
     account,
     truncatedAddress,
@@ -97,7 +99,7 @@ export default function Navbar() {
           justifyContent: "center",
           gap: "12px"
         }}>
-          <span>⚠️ Network Error: Wallet connected to wrong chain. Please switch to Quai Cyprus-1 (Chain ID: 15000).</span>
+          <span>⚠️ Switch to Quai Cyprus-1 (Chain 15000).</span>
           <button
             onClick={switchNetwork}
             style={{
@@ -111,7 +113,7 @@ export default function Navbar() {
               cursor: "pointer"
             }}
           >
-            Switch to Cyprus-1
+            Switch
           </button>
         </div>
       )}
@@ -160,7 +162,7 @@ export default function Navbar() {
           </nav>
 
           <div className={styles.actions}>
-            {/* Display Qi / WQI Balances when connected */}
+            {/* Display Qi / WQI Balances on Desktop */}
             {isConnected && (
               <div className={styles.balanceBadgeDesk}>
                 <span title="Native Qi Balance">⚡ {balances.qi} Qi</span>
@@ -169,33 +171,10 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Corporate Workspace Switcher */}
-            {isConnected && (
-              activeOrg ? (
-                <button
-                  className="btn btn-outlined btn-sm"
-                  onClick={() => setIsOrgModalOpen(true)}
-                  style={{
-                    borderColor: "rgba(0, 212, 170, 0.4)",
-                    color: "#00D4AA",
-                    background: "rgba(0, 212, 170, 0.08)",
-                    fontSize: "0.82rem",
-                  }}
-                >
-                  🏢 {activeOrg.name}
-                </button>
-              ) : (
-                <button
-                  className="btn btn-outlined btn-sm"
-                  onClick={() => setIsOrgModalOpen(true)}
-                  style={{ fontSize: "0.82rem" }}
-                >
-                  + Join Corporate
-                </button>
-              )
-            )}
-
-            <FarcasterAddFrameButton />
+            {/* Farcaster Add Frame Button */}
+            <div className={styles.farcasterAddWrapper}>
+              <FarcasterAddFrameButton />
+            </div>
 
             {/* Connected Wallet Dropdown */}
             <div className={styles.walletMenuWrapper} ref={menuRef}>
@@ -204,17 +183,24 @@ export default function Navbar() {
                 onClick={handleToggleWallet}
                 id="connect-wallet-btn"
                 disabled={isConnecting && !isConnected}
+                style={{ padding: "8px 12px", fontSize: "0.85rem" }}
               >
                 {isConnected ? (
                   <>
                     <span className={styles.statusDot}></span>
-                    {truncatedAddress}
+                    <span className={styles.walletAddrText}>{truncatedAddress}</span>
                     <span style={{ fontSize: "0.7rem", opacity: 0.7 }}>▾</span>
                   </>
                 ) : isConnecting ? (
                   "Connecting..."
                 ) : (
-                  "Connect Wallet"
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <span className={styles.connectTextDesk}>Connect Wallet</span>
+                  </>
                 )}
               </button>
 
@@ -240,7 +226,7 @@ export default function Navbar() {
                     </div>
                     <div className={styles.balanceRow}>
                       <span className={styles.balanceLabel}>Wrapped Qi (WQI):</span>
-                      <span className={styles.balanceVal} style={{ color: "#00D4AA" }}>🔒 {balances.wqi}</span>
+                      <span className={styles.balanceVal} style={{ color: "#00D4AA" }}>🔒 {balances.wqi} WQI</span>
                     </div>
                   </div>
 
@@ -256,19 +242,19 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* HAMBURGER TOGGLE BUTTON FOR MOBILE & FRAMES */}
+            {/* HAMBURGER TOGGLE BUTTON FOR MOBILE & FRAMES (ALWAYS VISIBLE ON SMALL SCREENS / FRAMES) */}
             <button
               className={styles.hamburgerBtn}
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle Navigation Menu"
             >
               {isMobileMenuOpen ? (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="2.5">
                   <line x1="3" y1="12" x2="21" y2="12" />
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <line x1="3" y1="18" x2="21" y2="18" />
@@ -281,6 +267,22 @@ export default function Navbar() {
         {/* MOBILE NAVIGATION DRAWER */}
         {isMobileMenuOpen && (
           <div className={styles.mobileNavDrawer}>
+            {/* Balances summary inside drawer */}
+            {isConnected && (
+              <div style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(0, 212, 170, 0.25)",
+                borderRadius: "10px",
+                padding: "10px 14px",
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "0.85rem"
+              }}>
+                <span>⚡ Native: <strong>{balances.qi} Qi</strong></span>
+                <span style={{ color: "#00D4AA" }}>🔒 WQI: <strong>{balances.wqi}</strong></span>
+              </div>
+            )}
+
             <div className={styles.mobileNavLinks}>
               <Link href="/dashboard" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
                 📊 Dashboard
@@ -303,10 +305,12 @@ export default function Navbar() {
             </div>
 
             <div className={styles.mobileFooterActions}>
+              <FarcasterAddFrameButton />
+
               {!isConnected ? (
                 <button
                   className="btn btn-primary"
-                  style={{ width: "100%" }}
+                  style={{ width: "100%", marginTop: "10px" }}
                   onClick={() => {
                     setIsWalletModalOpen(true);
                     setIsMobileMenuOpen(false);
@@ -317,9 +321,10 @@ export default function Navbar() {
               ) : (
                 <button
                   className={styles.disconnectBtn}
+                  style={{ marginTop: "10px" }}
                   onClick={handleDisconnect}
                 >
-                  Disconnect ({truncatedAddress})
+                  Disconnect Wallet ({truncatedAddress})
                 </button>
               )}
             </div>
