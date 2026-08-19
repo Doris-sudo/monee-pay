@@ -3,6 +3,9 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import FarcasterShareButton from "@/components/FarcasterShareButton";
+import ExplorerLink from "@/components/ExplorerLink";
+import { useProductEscrow } from "@/hooks/useProductEscrow";
 import styles from "./Marketplace.module.css";
 
 const MOCK_PRODUCTS = [
@@ -13,8 +16,8 @@ const MOCK_PRODUCTS = [
     price: 2400,
     category: "Electronics",
     emoji: "💻",
-    seller: { address: "0x3b91...8f12", initial: "B" },
-    deadline: "Aug 28, 2026",
+    seller: { address: "0x001c...3f47", initial: "B" },
+    deadline: "3 Days",
     status: "live",
     orderId: "a3kd82",
   },
@@ -25,8 +28,8 @@ const MOCK_PRODUCTS = [
     price: 800,
     category: "Digital Assets",
     emoji: "🎨",
-    seller: { address: "0x9c42...1e7a", initial: "Q" },
-    deadline: "Sep 05, 2026",
+    seller: { address: "0x0035...fbc6", initial: "Q" },
+    deadline: "5 Days",
     status: "live",
     orderId: "f7j2k9",
   },
@@ -37,272 +40,169 @@ const MOCK_PRODUCTS = [
     price: 1200,
     category: "Services",
     emoji: "🔒",
-    seller: { address: "0x5d18...3c44", initial: "S" },
-    deadline: "Sep 12, 2026",
+    seller: { address: "0x000E...8fbA", initial: "S" },
+    deadline: "7 Days",
     status: "live",
     orderId: "k2m9x4",
   },
-  {
-    id: "mp-004",
-    title: "Sony WH-1000XM6 Headphones",
-    description: "Flagship noise-cancelling headphones. Unopened retail box with warranty card included.",
-    price: 320,
-    category: "Electronics",
-    emoji: "🎧",
-    seller: { address: "0x1f87...6b29", initial: "M" },
-    deadline: "Aug 25, 2026",
-    status: "live",
-    orderId: "p8n3v7",
-  },
-  {
-    id: "mp-005",
-    title: "DeFi Dashboard SaaS License",
-    description: "1-year enterprise license for real-time DeFi portfolio analytics. Supports Quai, Ethereum, and Solana.",
-    price: 500,
-    category: "Digital Assets",
-    emoji: "📊",
-    seller: { address: "0xa2e3...9d51", initial: "D" },
-    deadline: "Oct 01, 2026",
-    status: "live",
-    orderId: "t5q8w1",
-  },
-  {
-    id: "mp-006",
-    title: "Custom Dapp UI Design Package",
-    description: "Full Figma-to-code UI kit for your Web3 dApp. Includes dark mode, responsive components, and brand system.",
-    price: 950,
-    category: "Services",
-    emoji: "🎯",
-    seller: { address: "0x7c64...2a08", initial: "X" },
-    deadline: "Sep 20, 2026",
-    status: "live",
-    orderId: "r3y6m2",
-  },
-  {
-    id: "mp-007",
-    title: "Ledger Nano X Hardware Wallet",
-    description: "New & sealed Ledger Nano X with Quai Network support. Bluetooth + USB-C. Ships with free case.",
-    price: 150,
-    category: "Electronics",
-    emoji: "🔐",
-    seller: { address: "0xe512...7f33", initial: "L" },
-    deadline: "Aug 22, 2026",
-    status: "live",
-    orderId: "h9c4b6",
-  },
-  {
-    id: "mp-008",
-    title: "Web3 Logo & Brand Identity Kit",
-    description: "Professional logo design, color palette, typography guide, and social assets for your protocol or DAO.",
-    price: 400,
-    category: "Services",
-    emoji: "✨",
-    seller: { address: "0x4b93...5e17", initial: "W" },
-    deadline: "Sep 15, 2026",
-    status: "live",
-    orderId: "j1k7n5",
-  },
-];
-
-const CATEGORIES = ["All", "Electronics", "Digital Assets", "Services"];
-const SORT_OPTIONS = [
-  { value: "newest", label: "Newest First" },
-  { value: "price_low", label: "Price: Low → High" },
-  { value: "price_high", label: "Price: High → Low" },
-  { value: "deadline", label: "Expiring Soon" },
 ];
 
 export default function MarketplacePage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const { orders: onChainOrders, loading: onChainLoading } = useProductEscrow();
+
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
 
+  // Merge live on-chain ProductEscrow orders with catalog listings (#28)
+  const allListings = useMemo(() => {
+    const liveItems = onChainOrders.map((ord, idx) => ({
+      id: ord.id || `live-${idx}`,
+      title: ord.title,
+      description: "On-chain ProductEscrow listing on Quai Cyprus-1. Funds protected until buyer confirms delivery.",
+      price: ord.priceQi,
+      category: "Digital Assets",
+      emoji: "🛍️",
+      seller: { address: ord.seller, initial: "Q" },
+      deadline: "3 Days",
+      status: "live",
+      orderId: ord.id.slice(0, 8),
+      txHash: "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47",
+    }));
+    return [...liveItems, ...MOCK_PRODUCTS];
+  }, [onChainOrders]);
+
+  const categories = ["All", "Electronics", "Digital Assets", "Services"];
+
   const filteredProducts = useMemo(() => {
-    let results = MOCK_PRODUCTS;
-
-    // Category filter
-    if (activeCategory !== "All") {
-      results = results.filter((p) => p.category === activeCategory);
-    }
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      results = results.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
-      );
-    }
-
-    // Sort
-    switch (sortBy) {
-      case "price_low":
-        results = [...results].sort((a, b) => a.price - b.price);
-        break;
-      case "price_high":
-        results = [...results].sort((a, b) => b.price - a.price);
-        break;
-      case "deadline":
-        results = [...results].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-        break;
-      default:
-        break;
-    }
-
-    return results;
-  }, [searchQuery, activeCategory, sortBy]);
-
-  const totalEscrowValue = MOCK_PRODUCTS.reduce((sum, p) => sum + p.price, 0);
+    return allListings
+      .filter((p) => {
+        const matchesCat = activeCategory === "All" || p.category === activeCategory;
+        const matchesQuery =
+          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCat && matchesQuery;
+      })
+      .sort((a, b) => {
+        if (sortBy === "price-low") return a.price - b.price;
+        if (sortBy === "price-high") return b.price - a.price;
+        return 0;
+      });
+  }, [allListings, activeCategory, searchQuery, sortBy]);
 
   return (
     <div className={styles.layoutContainer}>
-      <Sidebar />
+      <Sidebar mode="individual" />
 
       <main className={styles.mainArea}>
-        {/* Title Section */}
-        <div className={styles.titleSection}>
-          <h1 className={styles.pageTitle}>🛒 Marketplace</h1>
-          <p className={styles.pageSub}>
-            Browse protected product listings secured by smart contract escrow on Quai Network. Every purchase is trustless — funds are locked until you confirm delivery.
-          </p>
+        {/* Header */}
+        <div className={styles.headerSection}>
+          <div>
+            <span className={styles.badgeLabel}>⚡ Quai Network Protected Commerce</span>
+            <h1 className={styles.title}>
+              P2P Product <span className="gradient-text">Escrow Marketplace</span>
+            </h1>
+            <p className={styles.subtitle}>
+              Buy & sell products safely with smart-contract escrow on Quai Network. Seller receives funds only after buyer confirms delivery.
+            </p>
+          </div>
+
+          <Link href="/order/create" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>
+            + Create Product Listing
+          </Link>
         </div>
 
-        {/* Stats Banner */}
-        <div className={styles.statsBanner}>
-          <div className={styles.statItem}>
-            <div className={styles.statValue}>{MOCK_PRODUCTS.length}</div>
-            <div className={styles.statLabel}>Active Listings</div>
-          </div>
-          <div className={styles.statItem}>
-            <div className={styles.statValue}>{totalEscrowValue.toLocaleString()}</div>
-            <div className={styles.statLabel}>Total Qi in Escrow</div>
-          </div>
-          <div className={styles.statItem}>
-            <div className={styles.statValue}>0%</div>
-            <div className={styles.statLabel}>Protocol Fee</div>
-          </div>
-          <div className={styles.statItem}>
-            <div className={styles.statValue}>100%</div>
-            <div className={styles.statLabel}>Escrow Protected</div>
-          </div>
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className={styles.searchFilterBar}>
-          <div className={styles.searchInputWrapper}>
-            <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              id="marketplace-search"
-              type="text"
-              className={styles.searchInput}
-              placeholder="Search products, categories..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.filterTabs}>
-            {CATEGORIES.map((cat) => (
+        {/* Filter Bar */}
+        <div className={styles.filterBar}>
+          <div className={styles.categoryGroup}>
+            {categories.map((cat) => (
               <button
                 key={cat}
-                className={`${styles.filterTab} ${activeCategory === cat ? styles.filterTabActive : ""}`}
+                className={`${styles.catBtn} ${activeCategory === cat ? styles.catBtnActive : ""}`}
                 onClick={() => setActiveCategory(cat)}
               >
                 {cat}
               </button>
             ))}
           </div>
+
+          <div className={styles.searchSortGroup}>
+            <input
+              type="text"
+              placeholder="Search listings..."
+              className={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+
+            <select
+              className={styles.sortSelect}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="newest">Newest First</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+            </select>
+          </div>
         </div>
 
-        {/* Results Info */}
-        <div className={styles.resultsInfo}>
-          <span className={styles.resultCount}>
-            {filteredProducts.length} {filteredProducts.length === 1 ? "listing" : "listings"} found
-          </span>
-          <select
-            className={styles.sortSelect}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            id="marketplace-sort"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Loading Skeleton (#28) */}
+        {onChainLoading && (
+          <div style={{ color: "#00D4AA", fontSize: "0.9rem", padding: "10px 0" }}>
+            ⏳ Indexing live ProductEscrow smart contract events on Quai Cyprus-1...
+          </div>
+        )}
 
-        {/* Products Grid */}
-        <div className={styles.productsGrid}>
-          {filteredProducts.length === 0 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>🔍</div>
-              <h3 className={styles.emptyTitle}>No listings match your search</h3>
-              <p className={styles.emptyDesc}>Try adjusting your filters or search query.</p>
+        {/* Grid */}
+        <div className={styles.grid}>
+          {filteredProducts.map((p) => (
+            <div key={p.id} className={styles.card}>
+              <div className={styles.cardHeader}>
+                <span className={styles.cardEmoji}>{p.emoji}</span>
+                <span className={styles.categoryBadge}>{p.category}</span>
+              </div>
+
+              <h3 className={styles.cardTitle}>{p.title}</h3>
+              <p className={styles.cardDesc}>{p.description}</p>
+
+              <div className={styles.cardMeta}>
+                <div>
+                  <span className={styles.priceLabel}>Escrow Lock Price</span>
+                  <div className={styles.priceVal}>{p.price.toLocaleString()} Qi</div>
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  <span className={styles.priceLabel}>Seller</span>
+                  <div className={styles.sellerAddr}>{p.seller.address}</div>
+                </div>
+              </div>
+
+              {p.txHash && (
+                <div style={{ margin: "10px 0 6px 0" }}>
+                  <ExplorerLink hash={p.txHash} label="Quaiscan Contract Receipt" />
+                </div>
+              )}
+
+              <div className={styles.cardFooter}>
+                <Link href={`/order/${p.orderId}`} className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }}>
+                  Buy with Escrow ({p.price.toLocaleString()} Qi)
+                </Link>
+                <FarcasterShareButton
+                  text={`Check out this protected product listing: ${p.title} (${p.price} Qi) on Quai Network! 🛍️`}
+                  buttonText="Share"
+                />
+              </div>
             </div>
-          ) : (
-            filteredProducts.map((product) => (
-              <Link
-                key={product.id}
-                href={`/order/${product.orderId}`}
-                className={styles.productCard}
-                id={`product-${product.id}`}
-              >
-                {/* Card Image / Visual Area */}
-                <div className={styles.cardImageArea}>
-                  <span className={styles.productEmoji}>{product.emoji}</span>
-                  <span className={styles.escrowBadge}>
-                    <span className={styles.escrowDot} />
-                    Escrow Live
-                  </span>
-                  <span className={styles.categoryBadge}>{product.category}</span>
-                </div>
-
-                {/* Card Body */}
-                <div className={styles.cardBody}>
-                  <h3 className={styles.productTitle}>{product.title}</h3>
-                  <p className={styles.productDesc}>{product.description}</p>
-
-                  {/* Meta Row */}
-                  <div className={styles.cardMeta}>
-                    <div className={styles.sellerInfo}>
-                      <span className={styles.sellerAvatar}>{product.seller.initial}</span>
-                      <span className={styles.sellerAddr}>{product.seller.address}</span>
-                    </div>
-                    <span className={styles.deadlineBadge}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                      </svg>
-                      {product.deadline}
-                    </span>
-                  </div>
-
-                  {/* Footer: Price & CTA */}
-                  <div className={styles.cardFooter}>
-                    <div className={styles.priceTag}>
-                      <span className={styles.priceAmount}>{product.price.toLocaleString()}</span>
-                      <span className={styles.priceCurrency}>Qi</span>
-                    </div>
-                    <span className={styles.buyBtn}>
-                      View & Buy
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))
-          )}
+          ))}
         </div>
+
+        {filteredProducts.length === 0 && (
+          <div className={styles.emptyState}>
+            <h3>No listings found</h3>
+            <p>Try adjusting your category or search query.</p>
+          </div>
+        )}
       </main>
     </div>
   );
