@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import WalletModal from "./WalletModal";
 import OrgOnboardingModal from "./OrgOnboardingModal";
@@ -11,6 +11,7 @@ import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     account,
     truncatedAddress,
@@ -25,9 +26,10 @@ export default function Navbar() {
 
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isWalletMenuOpen, setIsWalletMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeOrg, setActiveOrg] = useState(null); // { name, domain, treasury, role }
+  const [activeOrg, setActiveOrg] = useState(null);
 
   const menuRef = useRef(null);
 
@@ -49,6 +51,7 @@ export default function Navbar() {
   const handleDisconnect = () => {
     disconnectWallet();
     setIsWalletMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   const handleCopyAddress = () => {
@@ -61,6 +64,12 @@ export default function Navbar() {
   const handleOrgRegistered = (orgData) => {
     setActiveOrg(orgData);
   };
+
+  // Close menus on path change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setIsWalletMenuOpen(false);
+  }, [pathname]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -127,6 +136,7 @@ export default function Navbar() {
             </Link>
           </div>
 
+          {/* Desktop Nav Links */}
           <nav className={styles.navLinks}>
             {isConnected ? (
               <Link href="/dashboard" className={styles.link}>Dashboard</Link>
@@ -143,34 +153,23 @@ export default function Navbar() {
                 Dashboard
               </button>
             )}
-            <a href="/marketplace" className={styles.link}>Marketplace</a>
-            <a href="/tasks" className={styles.link}>Tasks</a>
-            {isConnected && activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
-            <a href="#how-it-works" className={styles.link}>How It Works</a>
-            <a href="#features" className={styles.link}>Features</a>
+            <Link href="/marketplace" className={styles.link}>Marketplace</Link>
+            <Link href="/tasks" className={styles.link}>Tasks</Link>
+            <Link href="/payroll" className={styles.link}>Team Payroll</Link>
+            <Link href="/admin/disputes" className={styles.link}>Disputes</Link>
           </nav>
 
           <div className={styles.actions}>
             {/* Display Qi / WQI Balances when connected */}
             {isConnected && (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontSize: "0.78rem",
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: "20px",
-                padding: "4px 12px",
-                color: "#E2E8F0"
-              }}>
+              <div className={styles.balanceBadgeDesk}>
                 <span title="Native Qi Balance">⚡ {balances.qi} Qi</span>
                 <span style={{ opacity: 0.3 }}>|</span>
                 <span title="Wrapped Qi Balance" style={{ color: "#00D4AA" }}>🔒 {balances.wqi} WQI</span>
               </div>
             )}
 
-            {/* Corporate Workspace Switcher — only visible when wallet connected */}
+            {/* Corporate Workspace Switcher */}
             {isConnected && (
               activeOrg ? (
                 <button
@@ -191,14 +190,14 @@ export default function Navbar() {
                   onClick={() => setIsOrgModalOpen(true)}
                   style={{ fontSize: "0.82rem" }}
                 >
-                  + Join as Corporate
+                  + Join Corporate
                 </button>
               )
             )}
 
             <FarcasterAddFrameButton />
 
-            {/* Connected Wallet Dropdown & Disconnect Menu */}
+            {/* Connected Wallet Dropdown */}
             <div className={styles.walletMenuWrapper} ref={menuRef}>
               <button 
                 className={isConnected ? styles.walletBtnConnected : "btn btn-primary"}
@@ -256,8 +255,76 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            {/* HAMBURGER TOGGLE BUTTON FOR MOBILE & FRAMES */}
+            <button
+              className={styles.hamburgerBtn}
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              aria-label="Toggle Navigation Menu"
+            >
+              {isMobileMenuOpen ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
+
+        {/* MOBILE NAVIGATION DRAWER */}
+        {isMobileMenuOpen && (
+          <div className={styles.mobileNavDrawer}>
+            <div className={styles.mobileNavLinks}>
+              <Link href="/dashboard" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
+                📊 Dashboard
+              </Link>
+              <Link href="/order/create" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
+                ⚡ Create Escrow Payment
+              </Link>
+              <Link href="/marketplace" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
+                🛍️ Escrow Marketplace
+              </Link>
+              <Link href="/tasks" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
+                🎯 Task & Bounty Hub
+              </Link>
+              <Link href="/payroll" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
+                🏢 Corporate Payroll
+              </Link>
+              <Link href="/admin/disputes" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
+                ⚖️ Dispute Arbitration
+              </Link>
+            </div>
+
+            <div className={styles.mobileFooterActions}>
+              {!isConnected ? (
+                <button
+                  className="btn btn-primary"
+                  style={{ width: "100%" }}
+                  onClick={() => {
+                    setIsWalletModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  Connect Wallet
+                </button>
+              ) : (
+                <button
+                  className={styles.disconnectBtn}
+                  onClick={handleDisconnect}
+                >
+                  Disconnect ({truncatedAddress})
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Modals */}
