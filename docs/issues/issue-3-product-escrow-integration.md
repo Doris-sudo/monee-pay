@@ -7,8 +7,8 @@
 Integrate P2P product checkout, order management, and delivery verification flows with `ProductEscrow.sol` smart contract on Quai Network.
 
 ## Contract Reference
-- **ProductEscrow Address**: `0x003645ae7083baaBff80b2D6f05ad182e3782e0C`
-- **WQI Token Address**: `0x00354572C988dB5ca96827B091a59dAea71Bfbc6`
+- **ProductEscrow Address**: `0x006f02062876B24b138Ce56Ef6268Edad6d0CAa6`
+- **WQI Token Address**: `0x00384B879c117052527B3C93c1ab8525348dF64A`
 
 ## Deliverables
 - [ ] Connect `createOrder()` hook for sellers specifying item details, price in Qi, and delivery deadline.

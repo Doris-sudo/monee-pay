@@ -5,20 +5,20 @@
   "arbitrator": "0x007abf8E01568a43499A1Ec754D0eD218d7c4074",
   "contracts": {
     "MockWQI": {
-      "address": "0x00354572C988dB5ca96827B091a59dAea71Bfbc6",
-      "txHash": "0x0040001b98fd6838c1dd2ef3701a4c013cb8c721ea0ac1a68ca6a77bb65b79b4"
+      "address": "0x00384B879c117052527B3C93c1ab8525348dF64A",
+      "txHash": "0x00010004ece1598c9c9bef06809820c999871178d8481a587373cd6a82005775"
     },
     "MilestoneEscrow": {
-      "address": "0x0033bAa02477389a442580B63987214AB4097767",
-      "txHash": "0x006d007bd340535bd6b2920e0ad5d6153fb5d790d4317a11655f28bf134c2efc"
+      "address": "0x005e75c2F2cCD9205f498A5D0792561A989D9851",
+      "txHash": "0x00010027144dee1b02c90907f75264055fd3cf0b40c6657a0d4215a5c673e6ba"
     },
     "ProductEscrow": {
-      "address": "0x003645ae7083baaBff80b2D6f05ad182e3782e0C",
-      "txHash": "0x006f006e8d107deb0ca8178f5d087c326080b51146299d612ed2eb7a6ab74e15"
+      "address": "0x006f02062876B24b138Ce56Ef6268Edad6d0CAa6",
+      "txHash": "0x00230013bf4997398af96be8ed163b69195aa09d5d51a428c690c8f92355d64c"
     },
     "BatchPayroll": {
-      "address": "0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB",
-      "txHash": "0x006b006aaf7313061b95ceaf4f4a7c40d37bc739dda1a932939a27a0cacda55e"
+      "address": "0x006af39747bD49a5278610C274Ba96B013D07EE3",
+      "txHash": "0x0025007759bbe6069cef1fe64fcbb47c835218c9a6cd168f6ff5c19f51ed4e10"
     }
   }
 }

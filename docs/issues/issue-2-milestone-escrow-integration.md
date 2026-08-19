@@ -7,8 +7,8 @@
 Connect frontend task reward components and discovery marketplace to the `MilestoneEscrow.sol` smart contract on Quai Network.
 
 ## Contract Reference
-- **MilestoneEscrow Address**: `0x0033bAa02477389a442580B63987214AB4097767`
-- **WQI Token Address**: `0x00354572C988dB5ca96827B091a59dAea71Bfbc6`
+- **MilestoneEscrow Address**: `0x005e75c2F2cCD9205f498A5D0792561A989D9851`
+- **WQI Token Address**: `0x00384B879c117052527B3C93c1ab8525348dF64A`
 
 ## Deliverables
 - [ ] Connect `createTask()` to Task Creation Form with tranche percentage validation (sum to 100%).

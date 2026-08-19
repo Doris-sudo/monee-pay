@@ -9,8 +9,8 @@ Now that `MilestoneEscrow.sol` and `ProductEscrow.sol` have been upgraded with `
 When a buyer/seller or creator/solver opens a dispute via `openDispute()`, funds are frozen in smart contract escrow until the assigned arbitrator settles the dispute by deciding a percentage split (0–100%) between the parties.
 
 ## Contract Reference
-- **MilestoneEscrow**: `0x0033bAa02477389a442580B63987214AB4097767`
-- **ProductEscrow**: `0x003645ae7083baaBff80b2D6f05ad182e3782e0C`
+- **MilestoneEscrow**: `0x005e75c2F2cCD9205f498A5D0792561A989D9851`
+- **ProductEscrow**: `0x006f02062876B24b138Ce56Ef6268Edad6d0CAa6`
 - **Current Arbitrator**: `0x007abf8E01568a43499A1Ec754D0eD218d7c4074`
 
 ## Deliverables

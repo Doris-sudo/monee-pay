@@ -7,8 +7,8 @@
 Connect corporate batch payroll processing with `BatchPayroll.sol` and finalize native Farcaster Frame v2 / Mini App SDK integration (`@farcaster/frame-sdk`).
 
 ## Contract Reference
-- **BatchPayroll Address**: `0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB`
-- **WQI Token Address**: `0x00354572C988dB5ca96827B091a59dAea71Bfbc6`
+- **BatchPayroll Address**: `0x006af39747bD49a5278610C274Ba96B013D07EE3`
+- **WQI Token Address**: `0x00384B879c117052527B3C93c1ab8525348dF64A`
 
 ## Deliverables
 - [ ] Build CSV file uploader and recipient parser for batch payroll disbursements.
