@@ -44,36 +44,60 @@ export function Web3Provider({ children }) {
   // Helper to format truncated address
   const formatAddress = (addr) => {
     if (!addr) return "";
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    try {
+      const valid = quais.getAddress(addr);
+      return `${valid.slice(0, 6)}...${valid.slice(-4)}`;
+    } catch {
+      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    }
   };
 
   // Fetch balances for account
   const fetchBalances = useCallback(async (addr) => {
     if (!addr) return;
     try {
+      let validAddr = addr;
+      try {
+        validAddr = quais.getAddress(addr);
+      } catch (e) {
+        // use raw if checksum fails
+      }
+
       let quaiFormatted = "0.00";
       const pelagus = getPelagusProvider();
 
-      // 1. Try querying directly from connected browser wallet provider (instant & CORS-free)
+      // 1. Query live balance directly using quais BrowserProvider or pelagus request
       if (pelagus) {
         try {
-          const hexBal = await pelagus.request({ method: "eth_getBalance", params: [addr, "latest"] });
-          if (hexBal) {
-            const bigBal = BigInt(hexBal);
-            quaiFormatted = parseFloat(quais.formatEther(bigBal)).toFixed(2);
+          const browserProvider = new quais.BrowserProvider(pelagus);
+          const balWei = await browserProvider.getBalance(validAddr);
+          if (balWei !== undefined && balWei !== null) {
+            const rawEther = quais.formatEther(balWei);
+            const num = parseFloat(rawEther);
+            quaiFormatted = num > 0 ? num.toFixed(4) : "0.00";
           }
-        } catch (err) {
-          console.warn("Wallet provider balance query error:", err);
+        } catch (e1) {
+          try {
+            const hexBal = await pelagus.request({ method: "eth_getBalance", params: [validAddr, "latest"] });
+            if (hexBal) {
+              const bigBal = BigInt(hexBal);
+              const num = parseFloat(quais.formatEther(bigBal));
+              quaiFormatted = num > 0 ? num.toFixed(4) : "0.00";
+            }
+          } catch (e2) {
+            console.warn("Pelagus direct balance query fallback:", e2);
+          }
         }
       }
 
-      // 2. Fallback query via JsonRpcProvider if 0.00
+      // 2. Fallback query via JsonRpcProvider
       if (quaiFormatted === "0.00") {
         try {
           const rpcProvider = new quais.JsonRpcProvider(QUAI_CYPRUS1_RPC_URL, undefined, { usePathing: true });
-          const quaiBalWei = await rpcProvider.getBalance(addr).catch(() => 0n);
+          const quaiBalWei = await rpcProvider.getBalance(validAddr).catch(() => 0n);
           if (quaiBalWei > 0n) {
-            quaiFormatted = parseFloat(quais.formatEther(quaiBalWei)).toFixed(2);
+            const num = parseFloat(quais.formatEther(quaiBalWei));
+            quaiFormatted = num.toFixed(4);
           }
         } catch (err) {
           console.warn("RPC provider balance query error:", err);
@@ -85,8 +109,9 @@ export function Web3Provider({ children }) {
       try {
         const rpcProvider = new quais.JsonRpcProvider(QUAI_CYPRUS1_RPC_URL, undefined, { usePathing: true });
         const wqiContract = new quais.Contract(MOCK_WQI_ADDRESS, WQI_ABI, rpcProvider);
-        const wqiBalWei = await wqiContract.balanceOf(addr);
-        wqiFormatted = parseFloat(quais.formatEther(wqiBalWei)).toFixed(2);
+        const wqiBalWei = await wqiContract.balanceOf(validAddr);
+        const num = parseFloat(quais.formatEther(wqiBalWei));
+        wqiFormatted = num > 0 ? num.toFixed(4) : "0.00";
       } catch (err) {
         console.warn("Error fetching WQI balance:", err);
       }
@@ -116,7 +141,6 @@ export function Web3Provider({ children }) {
       });
       return true;
     } catch (switchError) {
-      // Chain 15000 not added yet, add it
       if (switchError.code === 4902 || switchError.message?.includes("Unrecognized chain")) {
         try {
           await pelagus.request({
@@ -258,7 +282,7 @@ export function Web3Provider({ children }) {
   // Periodically refresh balances
   useEffect(() => {
     if (!account) return;
-    const interval = setInterval(() => fetchBalances(account), 10000);
+    const interval = setInterval(() => fetchBalances(account), 8000);
     return () => clearInterval(interval);
   }, [account, fetchBalances]);
 
