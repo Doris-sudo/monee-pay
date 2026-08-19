@@ -4,24 +4,31 @@ import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
+import { useEscrowContracts } from "@/hooks/useEscrowContracts";
+import { useWallet } from "@/hooks/useWallet";
 import styles from "./Payroll.module.css";
 
 export default function PayrollPage() {
+  const { isConnected, connectWallet } = useWallet();
+  const { disburseBatch, parsePayrollCSV, grantAdmin, revokeAdmin, loading, error: contractError } = useEscrowContracts();
+
   const [employees, setEmployees] = useState([
-    { id: 1, name: "Alice Vance", role: "Lead Protocol Engineer", address: "0x7e83...4a2c", amount: 500 },
-    { id: 2, name: "Bob Martinez", role: "Fullstack Developer", address: "0x3f91...8b1e", amount: 350 },
-    { id: 3, name: "Charlie Chen", role: "Security Auditor", address: "0x91d4...2c0f", amount: 400 },
-    { id: 4, name: "Diana Prince", role: "Product Manager", address: "0x12e8...9a4b", amount: 300 },
-    { id: 5, name: "Eva Green", role: "UX Designer", address: "0x5c72...1f8d", amount: 250 },
+    { id: 1, name: "Alice Vance", role: "Lead Protocol Engineer", address: "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47", amount: 500 },
+    { id: 2, name: "Bob Martinez", role: "Fullstack Developer", address: "0x00354572C988dB5ca96827B091a59dAea71Bfbc6", amount: 350 },
+    { id: 3, name: "Charlie Chen", role: "Security Auditor", address: "0x000E6e8eE75Ccea4A0fFBE88F378ce732de8fbA", amount: 400 },
   ]);
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processStep, setProcessStep] = useState(0); // 0: idle, 1: wrapping, 2: locking, 3: disbursing, 4: complete
   const [isExecuted, setIsExecuted] = useState(false);
+  const [executedTxHash, setExecutedTxHash] = useState("");
   const [newAddr, setNewAddr] = useState("");
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
   const [newAmount, setNewAmount] = useState("");
+
+  // Admin RBAC State
+  const [adminAddr, setAdminAddr] = useState("");
+  const [adminStatusMsg, setAdminStatusMsg] = useState("");
 
   // Calculate Totals
   const totalQi = employees.reduce((sum, emp) => sum + (Number(emp.amount) || 0), 0);
@@ -30,16 +37,14 @@ export default function PayrollPage() {
   // Sample CSV Loader
   const handleLoadSampleCSV = () => {
     setEmployees([
-      { id: 1, name: "Alice Vance", role: "Lead Protocol Engineer", address: "0x7e83...4a2c", amount: 500 },
-      { id: 2, name: "Bob Martinez", role: "Fullstack Developer", address: "0x3f91...8b1e", amount: 350 },
-      { id: 3, name: "Charlie Chen", role: "Security Auditor", address: "0x91d4...2c0f", amount: 400 },
-      { id: 4, name: "Diana Prince", role: "Product Manager", address: "0x12e8...9a4b", amount: 300 },
-      { id: 5, name: "Eva Green", role: "UX Designer", address: "0x5c72...1f8d", amount: 250 },
+      { id: 1, name: "Alice Vance", role: "Lead Protocol Engineer", address: "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47", amount: 500 },
+      { id: 2, name: "Bob Martinez", role: "Fullstack Developer", address: "0x00354572C988dB5ca96827B091a59dAea71Bfbc6", amount: 350 },
+      { id: 3, name: "Charlie Chen", role: "Security Auditor", address: "0x000E6e8eE75Ccea4A0fFBE88F378ce732de8fbA", amount: 400 },
     ]);
     setIsExecuted(false);
   };
 
-  // CSV File Reader Handler
+  // CSV File Reader Handler using parsePayrollCSV helper
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -47,26 +52,21 @@ export default function PayrollPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
-      const lines = text.split("\n");
-      const parsed = [];
-      let idCounter = 1;
+      const { records, errors } = parsePayrollCSV(text);
 
-      lines.forEach((line, idx) => {
-        if (idx === 0 && line.toLowerCase().includes("address")) return; // Header row
-        const parts = line.split(",").map((s) => s.trim());
-        if (parts.length >= 2) {
-          parsed.push({
-            id: idCounter++,
-            address: parts[0] || "0x000...000",
-            name: parts[1] || `Employee #${idCounter}`,
-            role: parts[2] || "Team Member",
-            amount: Number(parts[3]) || 100,
-          });
-        }
-      });
+      if (errors.length > 0) {
+        alert(`CSV Parsing Warnings:\n${errors.join("\n")}`);
+      }
 
-      if (parsed.length > 0) {
-        setEmployees(parsed);
+      if (records.length > 0) {
+        const parsedRows = records.map((r, idx) => ({
+          id: idx + 1,
+          name: `Team Member #${idx + 1}`,
+          role: "Contributor",
+          address: r.address,
+          amount: r.amount,
+        }));
+        setEmployees(parsedRows);
         setIsExecuted(false);
       }
     };
@@ -103,18 +103,49 @@ export default function PayrollPage() {
     setNewAmount("");
   };
 
-  // Execute Batch Payout
-  const handleExecuteBatchPayout = () => {
-    setIsProcessing(true);
-    setProcessStep(1);
+  // Execute On-Chain Batch Payout via BatchPayroll contract
+  const handleExecuteBatchPayout = async () => {
+    if (!isConnected) {
+      const connected = await connectWallet();
+      if (!connected) return;
+    }
 
-    setTimeout(() => setProcessStep(2), 1200);
-    setTimeout(() => setProcessStep(3), 2400);
-    setTimeout(() => {
-      setProcessStep(4);
+    setIsProcessing(true);
+    try {
+      const recipients = employees.map((e) => e.address);
+      const amounts = employees.map((e) => e.amount);
+
+      const hash = await disburseBatch(recipients, amounts);
+      setExecutedTxHash(hash);
       setIsProcessing(false);
       setIsExecuted(true);
-    }, 3600);
+    } catch (err) {
+      console.error("Batch disburse error:", err);
+      setIsProcessing(false);
+    }
+  };
+
+  // Admin RBAC handlers
+  const handleGrantAdmin = async () => {
+    if (!adminAddr) return;
+    try {
+      const hash = await grantAdmin(adminAddr);
+      setAdminStatusMsg(`✓ Admin granted to ${adminAddr}. Tx: ${hash}`);
+      setAdminAddr("");
+    } catch (err) {
+      setAdminStatusMsg(`⚠️ Error: ${err.message}`);
+    }
+  };
+
+  const handleRevokeAdmin = async () => {
+    if (!adminAddr) return;
+    try {
+      const hash = await revokeAdmin(adminAddr);
+      setAdminStatusMsg(`✓ Admin revoked from ${adminAddr}. Tx: ${hash}`);
+      setAdminAddr("");
+    } catch (err) {
+      setAdminStatusMsg(`⚠️ Error: ${err.message}`);
+    }
   };
 
   return (
@@ -126,13 +157,27 @@ export default function PayrollPage() {
         <div className={styles.headerSection}>
           <div className={styles.titleGroup}>
             <h1 className={styles.title}>
-              MoneePay for <span className="gradient-text">Teams</span>
+              MoneePay for <span className="gradient-text">Teams & Payroll</span>
             </h1>
             <p className={styles.subtitle}>
-              Automated corporate stipends & batch Qi payroll on Quai Network. Upload employee wallet addresses via CSV to disburse team payouts in a single transaction.
+              Automated corporate stipends & batch Qi payroll on Quai Network. Single-transaction multi-recipient salary disbursements via <code>BatchPayroll.sol</code> (95% gas savings).
             </p>
           </div>
         </div>
+
+        {contractError && (
+          <div style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "8px",
+            padding: "12px 16px",
+            marginBottom: "20px",
+            color: "#F87171",
+            fontSize: "0.88rem"
+          }}>
+            ⚠️ Payroll Contract Error: {contractError}
+          </div>
+        )}
 
         {/* Upload Card */}
         <div className={styles.uploadCard}>
@@ -147,7 +192,7 @@ export default function PayrollPage() {
           </div>
           <h3 className={styles.uploadTitle}>Import Employee Payroll CSV</h3>
           <p className={styles.uploadSub}>
-            Upload a <code>.csv</code> file with columns: <code>Address, Name, Role, Amount (Qi)</code>
+            Upload a <code>.csv</code> file with columns: <code>Address, Amount (Qi)</code>
           </p>
 
           <div className={styles.btnRow}>
@@ -165,6 +210,36 @@ export default function PayrollPage() {
               Load Sample Tech Payroll CSV
             </button>
           </div>
+        </div>
+
+        {/* Admin RBAC Bar */}
+        <div style={{
+          background: "rgba(255, 255, 255, 0.03)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          borderRadius: "12px",
+          padding: "16px",
+          marginBottom: "24px"
+        }}>
+          <h4 style={{ margin: "0 0 10px 0", fontSize: "0.95rem", color: "#F8FAFC" }}>🔐 BatchPayroll Admin RBAC Management</h4>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              type="text"
+              placeholder="0x... Quai Wallet Address"
+              value={adminAddr}
+              onChange={(e) => setAdminAddr(e.target.value)}
+              className={styles.numInput}
+              style={{ flex: 1, minWidth: "220px" }}
+            />
+            <button className="btn btn-outlined btn-sm" onClick={handleGrantAdmin}>
+              Grant Admin
+            </button>
+            <button className="btn btn-outlined btn-sm" onClick={handleRevokeAdmin} style={{ borderColor: "#F87171", color: "#F87171" }}>
+              Revoke Admin
+            </button>
+          </div>
+          {adminStatusMsg && (
+            <p style={{ margin: "8px 0 0 0", fontSize: "0.82rem", color: "#00D4AA" }}>{adminStatusMsg}</p>
+          )}
         </div>
 
         {/* Metrics Grid */}
@@ -307,32 +382,13 @@ export default function PayrollPage() {
                 type="button"
                 className="btn btn-primary"
                 onClick={handleExecuteBatchPayout}
-                disabled={isProcessing || recipientCount === 0}
+                disabled={isProcessing || loading || recipientCount === 0}
                 style={{ padding: "14px 28px", fontSize: "1rem" }}
               >
-                {isProcessing
-                  ? "Processing Batch Payout..."
+                {isProcessing || loading
+                  ? "Signing & Disbursing Batch Payout..."
                   : `Execute Batch Payroll (${totalQi.toLocaleString()} Qi)`}
               </button>
-            </div>
-          )}
-
-          {/* Processing Modal / State */}
-          {isProcessing && (
-            <div className={styles.successCard}>
-              <h3 style={{ margin: "0 0 8px 0" }}>Executing Corporate Payroll Escrow...</h3>
-              <p style={{ color: "#94a3b8", fontSize: "0.9rem" }}>
-                {processStep === 1 && "Step 1/3: Wrapping native Qi to ERC-20 WQI on Quai EVM..."}
-                {processStep === 2 && "Step 2/3: Locking batch deposit in MoneePay Escrow contract..."}
-                {processStep === 3 && `Step 3/3: Disbursing payouts to ${recipientCount} employee wallets...`}
-              </p>
-
-              <div className={styles.progressTrack}>
-                <div
-                  className={styles.progressFill}
-                  style={{ width: `${(processStep / 4) * 100}%` }}
-                />
-              </div>
             </div>
           )}
 
@@ -347,9 +403,31 @@ export default function PayrollPage() {
               <h2 style={{ fontSize: "1.6rem", fontWeight: "800", margin: "0 0 8px 0" }}>
                 Batch Payroll Successfully Disbursed! 🎉
               </h2>
-              <p style={{ color: "#94a3b8", fontSize: "0.95rem", maxWidth: "540px", margin: "0 auto 20px auto" }}>
-                Disbursed a total of <strong>{totalQi.toLocaleString()} Qi</strong> to <strong>{recipientCount} team members</strong> on Quai Network. Transaction settled instantly in block #841920.
+              <p style={{ color: "#94a3b8", fontSize: "0.95rem", maxWidth: "540px", margin: "0 auto 12px auto" }}>
+                Disbursed a total of <strong>{totalQi.toLocaleString()} Qi</strong> to <strong>{recipientCount} team members</strong> via <code>BatchPayroll</code> smart contract.
               </p>
+
+              {executedTxHash && (
+                <div style={{
+                  background: "rgba(255, 255, 255, 0.04)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  marginBottom: "20px",
+                  fontSize: "0.85rem",
+                  wordBreak: "break-all"
+                }}>
+                  <span style={{ color: "#94A3B8" }}>Transaction Hash: </span>
+                  <a
+                    href={`https://orchard.quaiscan.io/tx/${executedTxHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: "#00D4AA", textDecoration: "underline" }}
+                  >
+                    {executedTxHash}
+                  </a>
+                </div>
+              )}
 
               <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
                 <FarcasterShareButton

@@ -1,16 +1,28 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
+import { useEscrowContracts } from "@/hooks/useEscrowContracts";
+import { useWallet } from "@/hooks/useWallet";
 import styles from "./OrderCheckout.module.css";
-import "./create.css"
-export default function OrderPage({ params }) {
+import "./create.css";
 
-  const [showForm, setShowForm] = useState()
+export default function OrderPage({ params }) {
   const resolvedParams = params ? use(params) : { id: "82hd91" };
   const orderId = resolvedParams.id || "82hd91";
+
+  const { isConnected, connectWallet } = useWallet();
+  const {
+    depositProductEscrow,
+    confirmDelivery,
+    claimTimeout,
+    openProductDispute,
+    approveMilestone,
+    loading: contractLoading,
+    error: contractError,
+  } = useEscrowContracts();
 
   // View Mode: 'management' | 'checkout'
   const [viewMode, setViewMode] = useState("management");
@@ -21,409 +33,397 @@ export default function OrderPage({ params }) {
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState("");
 
-  // Milestone Progress State
+  // Delivery Deadline Timer State (#26)
+  const [timeLeftSeconds, setTimeLeftSeconds] = useState(86400 * 3); // 3 days remaining
+
+  // Milestone Progress State (#25)
   const [milestones, setMilestones] = useState([
-    { id: 1, title: "Milestone 1: Project Setup & Design", amount: "400 Qi", status: "completed" },
-    { id: 2, title: "Milestone 2: Frontend & Escrow Contracts", amount: "400 Qi", status: "active" },
-    { id: 3, title: "Milestone 3: Mainnet Audit & Deployment", amount: "400 Qi", status: "pending" },
+    { id: 1, title: "Milestone 1: Project Setup & Scope", amount: "400 Qi", status: "completed" },
+    { id: 2, title: "Milestone 2: Delivery & Implementation", amount: "400 Qi", status: "active" },
+    { id: 3, title: "Milestone 3: Audit & Sign-off", amount: "400 Qi", status: "pending" },
   ]);
 
   // Timeline Event Feed State
   const [timeline, setTimeline] = useState([
     { id: 1, title: "Order created & escrow contract deployed", time: "Aug 10, 2026", type: "system" },
-    { id: 2, title: "Deposit of 1,200 Qi wrapped & locked in escrow", time: "Aug 10, 2026", type: "deposit" },
+    { id: 2, title: "Deposit of 1,200 Qi wrapped & locked in ProductEscrow", time: "Aug 10, 2026", type: "deposit" },
     { id: 3, title: "Milestone 1 (400 Qi) approved and released", time: "Aug 12, 2026", type: "release" },
   ]);
-
 
   // Buyer Checkout State
   const [payState, setPayState] = useState("connected");
   const [processingStep, setProcessingStep] = useState(1);
-  const [walletAddress] = useState("0x7e83...4a2c");
   const [txHash, setTxHash] = useState("");
 
-  // Action: Release Payment
-  const handleReleasePayment = () => {
-    setOrderStatus("completed");
-    setMilestones(milestones.map(m => ({ ...m, status: "completed" })));
-    setTimeline(prev => [
-      ...prev,
-      { id: prev.length + 1, title: "Full escrow funds (1,200 Qi) released to seller", time: "Just now", type: "release" }
-    ]);
-    showToast("✓ Escrow funds successfully released to seller!");
+  // Delivery Countdown Timer Effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeftSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (totalSec) => {
+    const d = Math.floor(totalSec / 86400);
+    const h = Math.floor((totalSec % 86400) / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${d}d ${h}h ${m}m ${s}s`;
   };
 
-  // Action: Approve Current Milestone
-  const handleApproveMilestone = () => {
-    const activeIdx = milestones.findIndex(m => m.status === "active");
-    if (activeIdx !== -1) {
-      const updated = [...milestones];
-      updated[activeIdx].status = "completed";
-      if (activeIdx + 1 < updated.length) {
-        updated[activeIdx + 1].status = "active";
-      } else {
-        setOrderStatus("completed");
+  // Action: Confirm Delivery & Release Escrow (#26)
+  const handleReleasePayment = async () => {
+    try {
+      if (!isConnected) {
+        await connectWallet();
       }
-      const title = updated[activeIdx].title;
-      const amount = updated[activeIdx].amount;
-      setMilestones(updated);
-      setTimeline(prev => [
+      const hash = await confirmDelivery(orderId);
+      setTxHash(hash);
+      setOrderStatus("completed");
+      setMilestones(milestones.map((m) => ({ ...m, status: "completed" })));
+      setTimeline((prev) => [
         ...prev,
-        { id: prev.length + 1, title: `${title} approved (${amount} released)`, time: "Just now", type: "release" }
+        { id: prev.length + 1, title: `Full escrow funds (1,200 Qi) released to seller. Tx: ${hash}`, time: "Just now", type: "release" },
       ]);
-      showToast(`✓ Approved ${title}! Funds released.`);
+      showToast("✓ Delivery confirmed & escrow funds successfully released to seller!");
+    } catch (err) {
+      showToast(`⚠️ Error: ${err.message}`);
     }
   };
 
-  // Action: Open Dispute
-  const handleOpenDispute = () => {
-    setOrderStatus("disputed");
-    setTimeline(prev => [
-      ...prev,
-      { id: prev.length + 1, title: "Dispute opened by Buyer. Escrow funds frozen.", time: "Just now", type: "dispute" }
-    ]);
-    showToast("⚠️ Dispute initiated. Funds are frozen until resolution.");
+  // Action: Approve Current Milestone (#25)
+  const handleApproveMilestone = async () => {
+    const activeIdx = milestones.findIndex((m) => m.status === "active");
+    if (activeIdx !== -1) {
+      try {
+        if (!isConnected) {
+          await connectWallet();
+        }
+        const hash = await approveMilestone(orderId, activeIdx);
+        setTxHash(hash);
+        const updated = [...milestones];
+        updated[activeIdx].status = "completed";
+        if (activeIdx + 1 < updated.length) {
+          updated[activeIdx + 1].status = "active";
+        } else {
+          setOrderStatus("completed");
+        }
+        const title = updated[activeIdx].title;
+        const amount = updated[activeIdx].amount;
+        setMilestones(updated);
+        setTimeline((prev) => [
+          ...prev,
+          { id: prev.length + 1, title: `${title} approved (${amount} released). Tx: ${hash}`, time: "Just now", type: "release" },
+        ]);
+        showToast(`✓ Approved ${title}! Tranche released.`);
+      } catch (err) {
+        showToast(`⚠️ Error: ${err.message}`);
+      }
+    }
+  };
+
+  // Action: Seller Claim Timeout Payout (#26)
+  const handleClaimTimeout = async () => {
+    try {
+      if (!isConnected) {
+        await connectWallet();
+      }
+      const hash = await claimTimeout(orderId);
+      setTxHash(hash);
+      setOrderStatus("completed");
+      setTimeline((prev) => [
+        ...prev,
+        { id: prev.length + 1, title: `Seller claimed timeout payout after deadline expiry. Tx: ${hash}`, time: "Just now", type: "release" },
+      ]);
+      showToast("✓ Delivery deadline expired — seller successfully claimed timeout payout!");
+    } catch (err) {
+      showToast(`⚠️ Error: ${err.message}`);
+    }
+  };
+
+  // Action: Open Dispute (#25, #26)
+  const handleOpenDispute = async () => {
+    try {
+      if (!isConnected) {
+        await connectWallet();
+      }
+      const hash = await openProductDispute(orderId, "Dispute initiated on order item/milestone");
+      setTxHash(hash);
+      setOrderStatus("disputed");
+      setTimeline((prev) => [
+        ...prev,
+        { id: prev.length + 1, title: `Dispute opened. Escrow funds frozen on Quai Cyprus-1. Tx: ${hash}`, time: "Just now", type: "dispute" },
+      ]);
+      showToast("⚠️ Dispute initiated. Funds are frozen until resolution.");
+    } catch (err) {
+      showToast(`⚠️ Error: ${err.message}`);
+    }
   };
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 3500);
+    setTimeout(() => setToastMessage(""), 4000);
   };
 
-  // Checkout Execution
-  const handleExecuteEscrowPayment = () => {
+  // Checkout Execution (#26)
+  const handleExecuteEscrowPayment = async () => {
+    if (!isConnected) {
+      const connected = await connectWallet();
+      if (!connected) return;
+    }
+
     setPayState("processing");
     setProcessingStep(1);
-    setTimeout(() => setProcessingStep(2), 1200);
-    setTimeout(() => setProcessingStep(3), 2400);
-    setTimeout(() => {
-      setTxHash("0x9a8f...3c12");
+
+    try {
+      const hash = await depositProductEscrow(orderId, "1200");
+      setTxHash(hash);
       setPayState("success");
-    }, 3600);
+      setOrderStatus("funded");
+      setTimeline((prev) => [
+        ...prev,
+        { id: prev.length + 1, title: `1,200 Qi deposited into ProductEscrow contract. Tx: ${hash}`, time: "Just now", type: "deposit" },
+      ]);
+    } catch (err) {
+      console.error("Deposit error:", err);
+      setPayState("connected");
+      showToast(`⚠️ Deposit Failed: ${err.message}`);
+    }
   };
 
   return (
     <div className={styles.layoutContainer}>
-      <Sidebar />
-      <div className={styles.backgroundGlow} />
+      <Sidebar mode="individual" />
 
       <main className={styles.mainArea}>
-        {/* View Mode Switcher */}
-        <div className={styles.modeToggleGroup} style={{ marginBottom: "24px" }}>
-          <button
-            className={`${styles.toggleBtn} ${viewMode === 'management' ? styles.toggleActive : ''}`}
-            onClick={() => setViewMode("management")}
-          >
-            Order Detail & Actions
-          </button>
-          <button
-            className={`${styles.toggleBtn} ${viewMode === 'checkout' ? styles.toggleActive : ''}`}
-            onClick={() => setViewMode("checkout")}
-          >
-            Buyer Checkout View
-          </button>
-        </div>
+        {/* Toast Notification */}
+        {toastMessage && <div className={styles.toast}>{toastMessage}</div>}
 
-        {viewMode === "management" ? (
-          /* ================= ORDER MANAGEMENT VIEW ================= */
-          <div className={styles.orderLayoutGrid}>
-
-            {/* Left Column */}
-            <div className={styles.leftCol}>
-
-              {/* Order Header Card */}
-              <div className={`${styles.orderHeaderCard} glass-card`}>
-                <div className={styles.titleStatusRow}>
-                  <div>
-                    <span style={{ fontSize: "0.8rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: "700" }}>
-                      Order #{orderId}
-                    </span>
-                    <h1 className={styles.orderTitle}>Full Stack Escrow App Development</h1>
-                  </div>
-
-                  <span className={`${styles.statusBadge} ${styles[orderStatus]}`}>
-                    {orderStatus === "funded" ? "Funded & Locked" :
-                      orderStatus === "milestone" ? "Milestone 2/3 Active" :
-                        orderStatus === "disputed" ? "Disputed / Paused" : "Completed & Settled"}
-                  </span>
-                </div>
-
-                <div className={styles.orderMetaRow}>
-                  <div className={styles.metaItem}>
-                    <span>Buyer:</span>
-                    <span className={styles.addressBadge}>0x7e83...4a2c</span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span>Seller:</span>
-                    <span className={styles.addressBadge}>0x3b91...8f12</span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span>Inspection Deadline:</span>
-                    <strong style={{ color: "#fff" }}>Sep 01, 2026</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dispute Alert Banner if Disputed */}
-              {orderStatus === "disputed" && (
-                <div className={styles.disputeAlertBanner}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <div className={styles.disputeText}>
-                    <strong>Dispute Active: Escrow Funds Frozen</strong>
-                    <br />
-                    A dispute has been initiated for Order #{orderId}. Funds remain locked in smart contract until settled by mutual agreement or arbitration.
-                  </div>
-                </div>
-              )}
-
-              {/* Escrow Actions Bar */}
-              <div className={`${styles.actionsCard} glass-card`}>
-                <div className={styles.actionsHeader}>
-                  <h3 className={styles.actionsTitle}>Escrow Actions</h3>
-
-                  {/* Demo State Switcher */}
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <span style={{ fontSize: "0.75rem", color: "#64748B", alignSelf: "center", marginRight: "4px" }}>Demo State:</span>
-                    <button className={styles.toggleBtn} onClick={() => setOrderStatus("funded")}>Funded</button>
-                    <button className={styles.toggleBtn} onClick={() => setOrderStatus("milestone")}>Milestones</button>
-                    <button className={styles.toggleBtn} onClick={() => setOrderStatus("disputed")}>Disputed</button>
-                  </div>
-                </div>
-
-                <div className={styles.actionGrid}>
-                  <button
-                    className={styles.releaseBtn}
-                    onClick={handleReleasePayment}
-                    disabled={orderStatus === "completed" || orderStatus === "disputed"}
-                    style={{ opacity: (orderStatus === "completed" || orderStatus === "disputed") ? 0.5 : 1 }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <span>Release All Funds</span>
-                  </button>
-
-                  <button
-                    className={styles.approveBtn}
-                    onClick={handleApproveMilestone}
-                    disabled={orderStatus === "completed" || orderStatus === "disputed"}
-                    style={{ opacity: (orderStatus === "completed" || orderStatus === "disputed") ? 0.5 : 1 }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                    <span>Approve Milestone</span>
-                  </button>
-
-                  <button
-                    className={styles.disputeBtn}
-                    onClick={handleOpenDispute}
-                    disabled={orderStatus === "completed" || orderStatus === "disputed"}
-                    style={{ opacity: (orderStatus === "completed" || orderStatus === "disputed") ? 0.5 : 1 }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                      <line x1="12" y1="9" x2="12" y2="13" />
-                      <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <span>Open Dispute</span>
-                  </button>
-
-                  <FarcasterShareButton buttonText="Share Escrow Link" text={`Check out Escrow Order #${orderId} on MoneePay (Quai Network)!`} />
-                </div>
-              </div>
-
-              {/* Milestone Progress Component */}
-              <div className={`${styles.milestonesCard} glass-card`}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h3 className={styles.actionsTitle}>Milestone Breakdown</h3>
-                  <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "#00D4AA" }}>
-                    {milestones.filter(m => m.status === "completed").length} of {milestones.length} Completed
-                  </span>
-                </div>
-
-                <div className={styles.progressBarTrack}>
-                  <div
-                    className={styles.progressBarFill}
-                    style={{
-                      width: `${(milestones.filter(m => m.status === "completed").length / milestones.length) * 100}%`
-                    }}
-                  />
-                </div>
-
-                <div className={styles.milestoneList}>
-                  {milestones.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`${styles.milestoneItem} ${m.status === 'active' ? styles.milestoneItemActive : m.status === 'completed' ? styles.milestoneItemDone : ''}`}
-                    >
-                      <div className={styles.milestoneLeft}>
-                        <span className={`${styles.milestoneBadgeDot} ${m.status === 'completed' ? styles.dotDone : m.status === 'active' ? styles.dotActive : styles.dotPending}`}>
-                          {m.status === 'completed' ? '✓' : m.id}
-                        </span>
-                        <div>
-                          <div className={styles.milestoneTitle}>{m.title}</div>
-                          <span style={{ fontSize: "0.78rem", color: m.status === 'completed' ? '#00D4AA' : m.status === 'active' ? '#00B4D8' : '#64748B' }}>
-                            {m.status === 'completed' ? 'Released & Settled' : m.status === 'active' ? 'In Progress / Ready for Approval' : 'Locked in Escrow'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <span className={styles.milestoneAmount}>{m.amount}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Contract Event Timeline */}
-              <div className={`${styles.timelineCard} glass-card`}>
-                <h3 className={styles.actionsTitle}>Contract Event Timeline</h3>
-                <div className={styles.timelineList}>
-                  {timeline.map((evt) => (
-                    <div key={evt.id} className={styles.timelineItem}>
-                      <div className={styles.timelineDot}>●</div>
-                      <div className={styles.timelineContent}>
-                        <div className={styles.timelineTitle}>{evt.title}</div>
-                        <div className={styles.timelineTime}>{evt.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <button className="create" onClick={() => setShowForm(true)}>Create</button>
-                </div>
-              </div>
-
-            </div>
-
-            {showForm && (
-              <div className="form">
-                <div className="insideform0">
-                  <h2 className="product">Product Listing and Creation Form</h2>
-
-                  <input className="insideform1" type="text" placeholder="Product name" required/> <br />
-                  <input className="insideform2" type="Number" placeholder="Price in escrow" required/><br />
-                  <div> 
-                    <input className="insideform3" type="text" placeholder="Delivery window" required/>
-                    <select className= "window">
-                      <option value="">Days</option>
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                      <option value="5">5</option>
-                      <option value="6">6</option>
-                      <option value="7">7</option>
-                    </select>
-                  </div>
-                  <input className="insideform4" type="text" placeholder="Item specs and shipping terms" required/>
-                </div>
-
-                <button className="create" onClick={() => setShowForm(false)} required>Submit</button>
-              </div>
-              
-            )}
-
-            {/* Right Column: Financial & Contract Info */}
-            <div className={styles.rightCol}>
-              <div className={`${styles.infoCard} glass-card`}>
-                <h3 className={styles.actionsTitle}>Escrow Summary</h3>
-
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Total Deposit Value</span>
-                  <span className={styles.infoVal} style={{ color: "#00D4AA", fontSize: "1.1rem" }}>1,200 Qi</span>
-                </div>
-
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Wrapped Asset</span>
-                  <span className={styles.infoVal}>1,200 WQI</span>
-                </div>
-
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Protocol Markup Fee</span>
-                  <span className={styles.infoVal} style={{ color: "#00D4AA" }}>0% (Zero Fee)</span>
-                </div>
-
-                <div className={styles.divider} />
-
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Released to Date</span>
-                  <span className={styles.infoVal}>
-                    {milestones.filter(m => m.status === "completed").length * 400} Qi
-                  </span>
-                </div>
-
-                <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Remaining Locked</span>
-                  <span className={styles.infoVal}>
-                    {1200 - (milestones.filter(m => m.status === "completed").length * 400)} Qi
-                  </span>
-                </div>
-
-                <div className={styles.divider} />
-
-                <div style={{ fontSize: "0.8rem", color: "#64748B", lineHeight: "1.4" }}>
-                  🔒 <strong>Smart Contract Protection:</strong>
-                  Funds are secured on the Quai Network EVM ledger until explicit buyer approval or dispute settlement.
-                </div>
-              </div>
-            </div>
-
+        {/* Header Bar */}
+        <div className={styles.topHeader}>
+          <div>
+            <span className={styles.orderBadge}>ORDER #{orderId.toUpperCase()}</span>
+            <h1 className={styles.orderTitle}>Full-Stack Protocol Audit & Development</h1>
+            <p className={styles.orderSub}>
+              P2P Protected Commerce & Milestone Escrow on Quai Network
+            </p>
           </div>
 
-        ) : (
-          /* ================= BUYER CHECKOUT VIEW ================= */
-          <div className={`${styles.checkoutCard} glass-card`}>
-            {payState === "success" ? (
-              <div style={{ textAlign: "center", padding: "20px 0" }}>
-                <h2 style={{ fontSize: "1.6rem", fontWeight: "800", color: "#00D4AA", marginBottom: "8px" }}>Payment Locked in Escrow!</h2>
-                <p style={{ color: "#94A3B8", marginBottom: "20px" }}>Your payment of 500 Qi has been secured in smart contract escrow.</p>
-                <button className="btn btn-primary" onClick={() => setViewMode("management")} style={{ width: "100%" }}>
-                  View Order Management
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className={styles.productHeader}>
-                  <div className={styles.productIconBox}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="2">
-                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                      <line x1="8" y1="21" x2="16" y2="21" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h1 style={{ fontSize: "1.3rem", fontWeight: "800", color: "#fff" }}>MacBook Pro M4 (16-inch)</h1>
-                    <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Seller: Bob&apos;s Electronics</span>
-                  </div>
-                </div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            {/* View Mode Toggle */}
+            <div className={styles.viewToggleGroup}>
+              <button
+                className={`${styles.toggleBtn} ${viewMode === "management" ? styles.toggleBtnActive : ""}`}
+                onClick={() => setViewMode("management")}
+              >
+                Seller Dashboard
+              </button>
+              <button
+                className={`${styles.toggleBtn} ${viewMode === "checkout" ? styles.toggleBtnActive : ""}`}
+                onClick={() => setViewMode("checkout")}
+              >
+                Buyer Checkout
+              </button>
+            </div>
 
-                <div className={styles.priceBanner}>
-                  <span style={{ fontSize: "0.85rem", color: "#94A3B8" }}>Amount Due</span>
-                  <div className={styles.priceValue}>
-                    <span className={styles.amount}>500</span>
-                    <span className={styles.currency}>Qi</span>
-                  </div>
-                </div>
+            <FarcasterShareButton
+              text={`Managing escrow order #${orderId} (1,200 Qi) on Quai Network via MoneePay! ⚡`}
+              buttonText="Share Order Frame"
+            />
+          </div>
+        </div>
 
-                <button
-                  className="btn btn-primary"
-                  onClick={handleExecuteEscrowPayment}
-                  style={{ width: "100%", padding: "16px", fontSize: "1rem" }}
-                >
-                  Pay & Escrow 500 Qi
-                </button>
-              </>
-            )}
+        {contractError && (
+          <div style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "8px",
+            padding: "12px 16px",
+            marginBottom: "20px",
+            color: "#F87171",
+            fontSize: "0.88rem"
+          }}>
+            ⚠️ Contract Error: {contractError}
           </div>
         )}
 
-        <p className={styles.footerNote}>
-          Powered by Quai Network • Protected by Smart Contract Escrow • Order ID: #{orderId}
-        </p>
+        {/* MODE 1: MANAGEMENT DASHBOARD */}
+        {viewMode === "management" && (
+          <>
+            {/* Delivery Deadline Countdown Card (#26) */}
+            <div style={{
+              background: "rgba(0, 212, 170, 0.06)",
+              border: "1px solid rgba(0, 212, 170, 0.25)",
+              borderRadius: "12px",
+              padding: "16px 20px",
+              marginBottom: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "12px"
+            }}>
+              <div>
+                <span style={{ fontSize: "0.8rem", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+                  ⏱️ Product Delivery Deadline Countdown (#26)
+                </span>
+                <div style={{ fontSize: "1.4rem", fontWeight: "800", color: "#00D4AA", fontFamily: "monospace", marginTop: "2px" }}>
+                  {formatCountdown(timeLeftSeconds)}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  className="btn btn-outlined btn-sm"
+                  onClick={handleClaimTimeout}
+                  disabled={timeLeftSeconds > 0 || contractLoading}
+                  title={timeLeftSeconds > 0 ? "Deadline has not expired yet" : "Claim timeout payout"}
+                >
+                  Claim Timeout Payout
+                </button>
+              </div>
+            </div>
+
+            {/* Status Overview Banner */}
+            <div className={styles.statusBanner}>
+              <div className={styles.statusBadgeCol}>
+                <span className={styles.labelMuted}>Escrow Lock Status</span>
+                <span className={`${styles.statusPill} ${styles["status_" + orderStatus]}`}>
+                  {orderStatus === "completed" && "✓ Settled & Released"}
+                  {orderStatus === "disputed" && "⚠️ Frozen (In Dispute)"}
+                  {orderStatus === "milestone" && "⚡ Active Escrow Lock"}
+                  {orderStatus === "funded" && "🔒 Funded in WQI"}
+                </span>
+              </div>
+
+              <div className={styles.statusMetricCol}>
+                <span className={styles.labelMuted}>Total Escrow Lock</span>
+                <span className={styles.metricBig}>1,200 Qi</span>
+              </div>
+
+              <div className={styles.statusMetricCol}>
+                <span className={styles.labelMuted}>Released Payout</span>
+                <span className={styles.metricTeal}>400 Qi</span>
+              </div>
+
+              <div className={styles.statusActions}>
+                {orderStatus !== "completed" && orderStatus !== "disputed" && (
+                  <>
+                    <button className="btn btn-primary btn-sm" onClick={handleReleasePayment} disabled={contractLoading}>
+                      Confirm Delivery & Release All (1,200 Qi)
+                    </button>
+                    <button className="btn btn-outlined btn-sm" onClick={handleOpenDispute} disabled={contractLoading} style={{ borderColor: "#F87171", color: "#F87171" }}>
+                      Open Dispute
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Grid Layout */}
+            <div className={styles.contentGrid}>
+              {/* Left Column: Milestones */}
+              <div className={styles.leftCol}>
+                <div className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <h3>Milestone Tranche Releases (#25)</h3>
+                    <span className={styles.badgeSm}>3 Tranches</span>
+                  </div>
+
+                  <div className={styles.milestoneList}>
+                    {milestones.map((m) => (
+                      <div key={m.id} className={`${styles.milestoneItem} ${styles["m_" + m.status]}`}>
+                        <div className={styles.mInfo}>
+                          <span className={styles.mIcon}>
+                            {m.status === "completed" ? "✓" : m.status === "active" ? "⚡" : "🔒"}
+                          </span>
+                          <div>
+                            <div className={styles.mTitle}>{m.title}</div>
+                            <div className={styles.mAmount}>{m.amount}</div>
+                          </div>
+                        </div>
+
+                        {m.status === "active" && (
+                          <button className="btn btn-outlined btn-sm" onClick={handleApproveMilestone} disabled={contractLoading}>
+                            Approve Milestone ({m.amount})
+                          </button>
+                        )}
+                        {m.status === "completed" && (
+                          <span style={{ fontSize: "0.78rem", color: "#10B981", fontWeight: 600 }}>Released</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Timeline Event Feed */}
+              <div className={styles.rightCol}>
+                <div className={styles.card}>
+                  <h3>On-Chain Timeline & Receipt</h3>
+                  <div className={styles.timelineList}>
+                    {timeline.map((item) => (
+                      <div key={item.id} className={styles.timelineItem}>
+                        <div className={styles.tDot} />
+                        <div>
+                          <div className={styles.tTitle}>{item.title}</div>
+                          <div className={styles.tTime}>{item.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* MODE 2: BUYER CHECKOUT */}
+        {viewMode === "checkout" && (
+          <div className={styles.checkoutWrapper}>
+            <div className={styles.checkoutCard}>
+              <h2>Protected Product Commerce Checkout (#26)</h2>
+              <p className={styles.orderSub}>Deposit 1,200 Qi into ProductEscrow. Funds are protected until you confirm item delivery.</p>
+
+              <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "16px", borderRadius: "10px", margin: "20px 0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <span>Item: Full-Stack Protocol Audit</span>
+                  <strong>1,200 Qi</strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", color: "#94A3B8", fontSize: "0.85rem" }}>
+                  <span>Escrow Contract</span>
+                  <span>ProductEscrow.sol</span>
+                </div>
+              </div>
+
+              {payState === "connected" && (
+                <button className="btn btn-primary" style={{ width: "100%", padding: "14px" }} onClick={handleExecuteEscrowPayment} disabled={contractLoading}>
+                  {contractLoading ? "Broadcasting to Quai..." : "Deposit 1,200 Qi into Escrow"}
+                </button>
+              )}
+
+              {payState === "processing" && (
+                <div>
+                  <p style={{ textAlign: "center", color: "#00D4AA" }}>Processing Quai Cyprus-1 Deposit...</p>
+                </div>
+              )}
+
+              {payState === "success" && (
+                <div style={{ textAlign: "center" }}>
+                  <h3 style={{ color: "#10B981" }}>Escrow Deposit Successful! 🎉</h3>
+                  {txHash && (
+                    <p style={{ fontSize: "0.85rem", wordBreak: "break-all" }}>
+                      Tx Hash: <a href={`https://orchard.quaiscan.io/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#00D4AA" }}>{txHash}</a>
+                    </p>
+                  )}
+                  <button className="btn btn-outlined" onClick={() => setViewMode("management")} style={{ marginTop: "12px" }}>
+                    Go to Dashboard
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
