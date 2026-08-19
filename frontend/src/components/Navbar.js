@@ -6,27 +6,38 @@ import { useRouter } from "next/navigation";
 import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import WalletModal from "./WalletModal";
 import OrgOnboardingModal from "./OrgOnboardingModal";
+import { useWallet } from "@/hooks/useWallet";
 import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   const router = useRouter();
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [address, setAddress] = useState("");
+  const {
+    account,
+    truncatedAddress,
+    isConnected,
+    isConnecting,
+    isCorrectNetwork,
+    balances,
+    error,
+    connectWallet,
+    disconnectWallet,
+    switchNetwork,
+  } = useWallet();
+
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [activeOrg, setActiveOrg] = useState(null); // { name, domain, treasury, role }
 
-  const handleWalletConnect = (walletName) => {
-    setWalletConnected(true);
-    setAddress("0x7e83...4a2c");
-    // Navigate to individual dashboard (not corporate)
-    router.push("/dashboard?mode=connected");
+  const handleWalletConnect = async (walletName) => {
+    const success = await connectWallet(walletName);
+    if (success) {
+      router.push("/dashboard?mode=connected");
+    }
   };
 
   const handleToggleWallet = () => {
-    if (walletConnected) {
-      setWalletConnected(false);
-      setAddress("");
+    if (isConnected) {
+      disconnectWallet();
     } else {
       setIsWalletModalOpen(true);
     }
@@ -38,6 +49,38 @@ export default function Navbar() {
 
   return (
     <>
+      {isConnected && !isCorrectNetwork && (
+        <div style={{
+          background: "rgba(239, 68, 68, 0.15)",
+          borderBottom: "1px solid rgba(239, 68, 68, 0.3)",
+          color: "#F87171",
+          fontSize: "0.85rem",
+          padding: "8px 16px",
+          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px"
+        }}>
+          <span>⚠️ Network Error: Wallet connected to wrong chain. Please switch to Quai Cyprus-1 (Chain ID: 15000).</span>
+          <button
+            onClick={switchNetwork}
+            style={{
+              background: "#EF4444",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "4px 10px",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              cursor: "pointer"
+            }}
+          >
+            Switch to Cyprus-1
+          </button>
+        </div>
+      )}
+
       <header className={styles.header}>
         <div className={styles.container}>
           <div className={styles.brand}>
@@ -59,7 +102,7 @@ export default function Navbar() {
           </div>
 
           <nav className={styles.navLinks}>
-            {walletConnected ? (
+            {isConnected ? (
               <Link href="/dashboard" className={styles.link}>Dashboard</Link>
             ) : (
               <button
@@ -76,14 +119,33 @@ export default function Navbar() {
             )}
             <a href="/marketplace" className={styles.link}>Marketplace</a>
             <a href="/tasks" className={styles.link}>Tasks</a>
-            {walletConnected && activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
+            {isConnected && activeOrg && <a href="/payroll" className={styles.link}>Team Payroll</a>}
             <a href="#how-it-works" className={styles.link}>How It Works</a>
             <a href="#features" className={styles.link}>Features</a>
           </nav>
 
           <div className={styles.actions}>
+            {/* Display Qi / WQI Balances when connected */}
+            {isConnected && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "0.78rem",
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                borderRadius: "20px",
+                padding: "4px 12px",
+                color: "#E2E8F0"
+              }}>
+                <span title="Native Qi Balance">⚡ {balances.qi} Qi</span>
+                <span style={{ opacity: 0.3 }}>|</span>
+                <span title="Wrapped Qi Balance" style={{ color: "#00D4AA" }}>🔒 {balances.wqi} WQI</span>
+              </div>
+            )}
+
             {/* Corporate Workspace Switcher — only visible when wallet connected */}
-            {walletConnected && (
+            {isConnected && (
               activeOrg ? (
                 <button
                   className="btn btn-outlined btn-sm"
@@ -111,14 +173,17 @@ export default function Navbar() {
             <FarcasterAddFrameButton />
 
             <button 
-              className={walletConnected ? "btn btn-outlined" : "btn btn-primary"}
+              className={isConnected ? "btn btn-outlined" : "btn btn-primary"}
               onClick={handleToggleWallet}
               id="connect-wallet-btn"
+              disabled={isConnecting}
             >
-              {walletConnected ? (
+              {isConnecting ? (
+                "Connecting..."
+              ) : isConnected ? (
                 <>
                   <span className={styles.statusDot}></span>
-                  {address}
+                  {truncatedAddress}
                 </>
               ) : (
                 "Connect Wallet"

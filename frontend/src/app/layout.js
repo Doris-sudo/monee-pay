@@ -1,6 +1,7 @@
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { FarcasterProvider } from "@/components/FarcasterProvider";
+import { Web3Provider } from "@/context/Web3Context";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -60,7 +61,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
       <body>
-        <FarcasterProvider>{children}</FarcasterProvider>
+        <Web3Provider>
+          <FarcasterProvider>{children}</FarcasterProvider>
+        </Web3Provider>
       </body>
     </html>
   );
