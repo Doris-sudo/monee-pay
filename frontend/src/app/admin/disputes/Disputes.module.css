@@ -136,6 +136,7 @@
 .tabGroup {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .tabBtn {
@@ -180,7 +181,7 @@
 /* Dispute Cards Grid */
 .disputeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 24px;
   margin-bottom: 40px;
 }
@@ -208,6 +209,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .typeBadge {
@@ -350,6 +353,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
+  flex-shrink: 0;
 }
 
 .govTitle {
@@ -371,7 +375,7 @@
 
 .transferInput {
   flex: 1;
-  min-width: 280px;
+  min-width: 240px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -395,7 +399,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 16px;
 }
 
 .modal {
@@ -403,10 +407,12 @@
   border: 1px solid rgba(0, 212, 170, 0.3);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 212, 170, 0.1);
   border-radius: 24px;
-  padding: 36px;
+  padding: 32px 24px;
   max-width: 560px;
   width: 100%;
   position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
   animation: modalFade 0.25s ease-out;
 }
 
@@ -417,8 +423,8 @@
 
 .closeBtn {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  right: 16px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94A3B8;
@@ -439,35 +445,35 @@
 
 .modalTitle {
   font-family: var(--font-outfit), sans-serif;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: 6px;
 }
 
 .modalSub {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: #94A3B8;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   line-height: 1.5;
 }
 
 /* Preset Buttons */
 .presetRow {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
 .presetBtn {
   flex: 1;
-  min-width: 80px;
+  min-width: 70px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 8px 4px;
   color: #CBD5E1;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -516,7 +522,7 @@
 .sliderHeader {
   display: flex;
   justify-content: space-between;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 700;
   margin-bottom: 10px;
 }
@@ -532,37 +538,70 @@
 .calcGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 28px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .calcCard {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
 }
 
 .calcLabel {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #64748B;
   text-transform: uppercase;
   font-weight: 700;
 }
 
 .calcAddr {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #94A3B8;
   font-family: monospace;
   margin-top: 2px;
 }
 
 .calcVal {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  margin-top: 8px;
+  margin-top: 6px;
   color: #F8FAFC;
   font-family: var(--font-outfit), sans-serif;
+}
+
+/* ── Mobile Responsiveness Breakpoints ── */
+@media (max-width: 900px) {
+  .mainArea {
+    padding: 24px 20px 80px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mainArea {
+    padding: 16px 14px 90px 14px;
+  }
+  .title {
+    font-size: 1.8rem;
+  }
+  .disputeGrid {
+    grid-template-columns: 1fr;
+  }
+  .searchInput {
+    width: 100%;
+    min-width: unset;
+  }
+  .filterBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .calcGrid {
+    grid-template-columns: 1fr;
+  }
+  .presetRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
