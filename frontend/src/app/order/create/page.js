@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
+import { useEscrowContracts } from "@/hooks/useEscrowContracts";
+import { useWallet } from "@/hooks/useWallet";
 import styles from "./CreateOrder.module.css";
 
-
 export default function CreateOrderPage() {
+  const { isConnected, connectWallet } = useWallet();
+  const { createTask, createOrder, loading, txHash, error: contractError } = useEscrowContracts();
+
   // Escrow Types: 'task_reward' | 'product_sale' | 'milestone'
   const [escrowType, setEscrowType] = useState("task_reward");
 
@@ -28,11 +32,11 @@ export default function CreateOrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreated, setIsCreated] = useState(false);
   const [createdOrderLink, setCreatedOrderLink] = useState("");
+  const [createdTxHash, setCreatedTxHash] = useState("");
 
   // Toast State
   const [toastVisible, setToastVisible] = useState(false);
   const [toastKey, setToastKey] = useState(0);
-
 
   const totalPercent = milestones.reduce((acc, curr) => acc + curr.percent, 0);
 
@@ -61,18 +65,57 @@ export default function CreateOrderPage() {
     );
   };
 
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     e.preventDefault();
+
+    if (!isConnected) {
+      const connected = await connectWallet();
+      if (!connected) return;
+    }
+
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      let hash = "";
+
+      if (escrowType === "product_sale") {
+        // Execute ProductEscrow contract call
+        const deadlineSec = Number(deadlineDays) * 86400;
+        hash = await createOrder({
+          itemTitle: title || "Product Item",
+          priceQi: totalAmount,
+          deliveryDeadlineSeconds: deadlineSec,
+        });
+      } else {
+        // Execute MilestoneEscrow contract call
+        if (showMilestones && totalPercent !== 100) {
+          alert(`Tranche percentages must sum to 100%. Current sum: ${totalPercent}%`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        const trancheBps = showMilestones
+          ? milestones.map((m) => m.percent * 100)
+          : [10000]; // Single 100% payout
+
+        hash = await createTask({
+          title: title || "Task Bounty Escrow",
+          description: description || "Escrow bounty task",
+          rewardQi: totalAmount,
+          trancheBpsArray: trancheBps,
+        });
+      }
+
+      setCreatedTxHash(hash);
+      const generatedId = Math.random().toString(36).substring(2, 8);
+      const domain = typeof window !== "undefined" ? window.location.origin : "https://www.moneepay.xyz";
+      setCreatedOrderLink(`${domain}/order/${generatedId}`);
       setIsSubmitting(false);
       setIsCreated(true);
-      const generatedId = Math.random().toString(36).substring(2, 8);
-      const domain =
-        typeof window !== "undefined" ? window.location.origin : "https://www.moneepay.xyz";
-      setCreatedOrderLink(`${domain}/order/${generatedId}`);
-    }, 1500);
+    } catch (err) {
+      console.error("Contract submit error:", err);
+      setIsSubmitting(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -91,6 +134,7 @@ export default function CreateOrderPage() {
     setTotalAmount("500");
     setDeadlineDays("7");
     setEnableMilestones(false);
+    setCreatedTxHash("");
     setMilestones([
       { id: 1, title: "Discovery & Initial Deliverable", percent: 40 },
       { id: 2, title: "Final Verification & Handover", percent: 60 },
@@ -101,440 +145,230 @@ export default function CreateOrderPage() {
 
   return (
     <div className={styles.layoutContainer}>
-      <Sidebar />
+      <Sidebar mode="individual" />
 
       <main className={styles.mainArea}>
-
-      {/* Toast Notification */}
-      {toastVisible && (
-        <div className={styles.toastWrapper} key={toastKey}>
-          <div className={styles.toast}>
-            <svg className={styles.toastIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            Link copied to clipboard
+        <div className={styles.headerSection}>
+          <div className={styles.titleGroup}>
+            <h1 className={styles.title}>
+              Create <span className="gradient-text">Escrow Contract</span>
+            </h1>
+            <p className={styles.subtitle}>
+              Deploy trustless smart escrow on Quai Network. Support for milestone payouts, task bounties, and protected physical/digital P2P commerce.
+            </p>
           </div>
         </div>
-      )}
 
-      {/* Main Content */}
-        <div className={styles.formCard}>
-          {isCreated ? (
-            /* ═══════════════════════════════════════════
-               POST-CREATION LIVE CARD DISPLAY
-               ═══════════════════════════════════════════ */
-            <div className={styles.createdSuccess}>
-              <div className={styles.createdIcon}>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00D4AA" strokeWidth="3">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
+        {contractError && (
+          <div style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "8px",
+            padding: "12px 16px",
+            marginBottom: "20px",
+            color: "#F87171",
+            fontSize: "0.88rem"
+          }}>
+            ⚠️ Contract Error: {contractError}
+          </div>
+        )}
 
-              <h2 className={styles.createdTitle}>
-                {escrowType === "task_reward"
-                  ? "🎯 Task Reward Deployed & Live!"
-                  : escrowType === "product_sale"
-                  ? "🛒 Product Listing Live on Quai Network!"
-                  : "🤝 Milestone Escrow Contract Deployed!"}
-              </h2>
+        {!isCreated ? (
+          <div className={styles.formCard}>
+            <form onSubmit={handleSubmitOrder}>
+              {/* Type Selector */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Escrow Contract Type</label>
+                <div className={styles.typeSelector}>
+                  <button
+                    type="button"
+                    className={`${styles.typeCard} ${escrowType === "task_reward" ? styles.typeCardActive : ""}`}
+                    onClick={() => setEscrowType("task_reward")}
+                  >
+                    <span className={styles.typeIcon}>⚡</span>
+                    <span className={styles.typeTitle}>Task Bounty</span>
+                    <span className={styles.typeDesc}>Single or tranche payout upon deliverable completion</span>
+                  </button>
 
-              <p className={styles.createdSub}>
-                {escrowType === "task_reward"
-                  ? `Your Task Reward of ${totalAmount} Qi is locked in smart escrow. Solvers can now complete your task and claim rewards upon deliverable approval.`
-                  : escrowType === "product_sale"
-                  ? `Your product listing "${title || "Item"}" priced at ${totalAmount} Qi is live. Share the protected checkout link with buyers.`
-                  : `Your milestone escrow of ${totalAmount} Qi is deployed. Funds unlock tranche-by-tranche as milestones are verified.`}
-              </p>
+                  <button
+                    type="button"
+                    className={`${styles.typeCard} ${escrowType === "product_sale" ? styles.typeCardActive : ""}`}
+                    onClick={() => setEscrowType("product_sale")}
+                  >
+                    <span className={styles.typeIcon}>🛍️</span>
+                    <span className={styles.typeTitle}>Product Commerce</span>
+                    <span className={styles.typeDesc}>P2P item sales with delivery deadline protection</span>
+                  </button>
 
-              {/* ── Interactive Live Card ── */}
-              <div className={styles.liveCard} id="live-task-card">
-                <div className={styles.liveCardHeader}>
-                  <div className={styles.statusBadge}>
-                    <span className={styles.statusDot} />
-                    {escrowType === "task_reward"
-                      ? "Active Task Reward"
-                      : escrowType === "product_sale"
-                      ? "Protected Product Listing"
-                      : "Active Milestone Escrow"}
-                  </div>
-                  <span className={styles.escrowBadge}>Escrow Locked</span>
-                </div>
-
-                <div className={styles.liveCardBody}>
-                  <h3 className={styles.liveCardTitle}>
-                    {title || "Untitled Task"}
-                  </h3>
-
-                  <div className={styles.liveCardMeta}>
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Total Lockup</span>
-                      <span className={`${styles.metaValue} ${styles.metaValueAccent}`}>
-                        {totalAmount} Qi
-                      </span>
-                    </div>
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Deadline</span>
-                      <span className={styles.metaValue}>
-                        {deadlineDays} {Number(deadlineDays) === 1 ? "Day" : "Days"} Remaining
-                      </span>
-                    </div>
-                    <div className={styles.metaItem}>
-                      <span className={styles.metaLabel}>Escrow Type</span>
-                      <span className={styles.metaValue}>
-                        {escrowType === "task_reward"
-                          ? "Task Reward (WQI)"
-                          : escrowType === "product_sale"
-                          ? "Product Sale (WQI)"
-                          : "Milestone (WQI)"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Milestone Breakdown */}
-                  {showMilestones && milestones.length > 0 && (
-                    <>
-                      <hr className={styles.liveCardDivider} />
-                      <div className={styles.liveCardMilestones}>
-                        <span className={styles.deliverablesLabel}>Milestone Tranches</span>
-                        {milestones.map((m, idx) => (
-                          <div key={m.id} className={styles.liveMilestoneRow}>
-                            <span className={styles.liveMilestoneIndex}>{idx + 1}</span>
-                            <span className={styles.liveMilestoneTitle}>{m.title}</span>
-                            <span className={styles.liveMilestonePercent}>{m.percent}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Deliverables & Criteria */}
-                  {description && (
-                    <>
-                      <hr className={styles.liveCardDivider} />
-                      <div className={styles.liveCardDeliverables}>
-                        <span className={styles.deliverablesLabel}>
-                          {escrowType === "task_reward"
-                            ? "Solver Criteria & Deliverables"
-                            : "Description & Requirements"}
-                        </span>
-                        <p className={styles.deliverablesText}>{description}</p>
-                      </div>
-                    </>
-                  )}
+                  <button
+                    type="button"
+                    className={`${styles.typeCard} ${escrowType === "milestone" ? styles.typeCardActive : ""}`}
+                    onClick={() => setEscrowType("milestone")}
+                  >
+                    <span className={styles.typeIcon}>🎯</span>
+                    <span className={styles.typeTitle}>Milestone Project</span>
+                    <span className={styles.typeDesc}>Multi-phase contract with tranche release approvals</span>
+                  </button>
                 </div>
               </div>
 
-              {/* ── Share Box ── */}
-              <div className={styles.linkShareBox}>
-                <span className={styles.shareUrl}>{createdOrderLink}</span>
-                <button className={styles.copyBtn} onClick={handleCopyLink} id="copy-share-link">
-                  Copy Share Link
-                </button>
-              </div>
-
-              {/* ── Action Buttons ── */}
-              <div className={styles.actionsRow}>
-                <Link
-                  href={`/order/${createdOrderLink.split("/").pop()}`}
-                  className={`${styles.actionBtn} ${styles.actionPrimary}`}
-                  id="view-live-task"
-                >
-                  View Live {escrowType === "task_reward" ? "Task Reward" : "Listing"}
-                </Link>
-
-                <FarcasterShareButton
-                  text={
-                    escrowType === "task_reward"
-                      ? `🎯 New Task Reward: ${title || "Task"} (${totalAmount} Qi reward)! Solve and claim on MoneePay:`
-                      : `🛒 Product Listing: ${title || "Item"} (${totalAmount} Qi)! Buy safely on MoneePay:`
-                  }
-                  url={createdOrderLink}
-                  buttonText={
-                    escrowType === "task_reward"
-                      ? "Share Task to Farcaster"
-                      : "Share Listing to Farcaster"
-                  }
-                />
-
-                <button
-                  className={`${styles.actionBtn} ${styles.actionOutlined}`}
-                  onClick={handleCreateAnother}
-                  id="create-another"
-                >
-                  Create Another
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* ═══════════════════════════════════════════
-               CREATION FORM
-               ═══════════════════════════════════════════ */
-            <form onSubmit={handleSubmitOrder} id="task-reward-form">
-              <div className={styles.formTitleGroup}>
-                <h1 className={styles.formTitle}>Create Smart Contract Escrow</h1>
-                <p className={styles.formSub}>
-                  Select whether you are creating a Task Reward for solvers or a Protected Product Listing for buyers.
-                </p>
-              </div>
-
-              {/* Escrow Type Switcher Cards */}
-              <div className={styles.typeSwitcher}>
-                <div
-                  className={`${styles.typeCard} ${escrowType === "task_reward" ? styles.typeActive : ""}`}
-                  onClick={() => setEscrowType("task_reward")}
-                  id="type-task-reward"
-                >
-                  <div className={styles.typeCardHeader}>
-                    <span className={styles.typeName}>🎯 Task Reward Escrow</span>
-                    <span className={`${styles.radioDot} ${escrowType === "task_reward" ? styles.radioActive : ""}`} />
-                  </div>
-                  <p className={styles.typeDesc}>
-                    Post a task or project bounty. Funds are locked in escrow upfront and released to the solver upon deliverable approval.
-                  </p>
-                </div>
-
-                <div
-                  className={`${styles.typeCard} ${escrowType === "product_sale" ? styles.typeActive : ""}`}
-                  onClick={() => setEscrowType("product_sale")}
-                  id="type-product-sale"
-                >
-                  <div className={styles.typeCardHeader}>
-                    <span className={styles.typeName}>🛒 Product Sales Escrow</span>
-                    <span className={`${styles.radioDot} ${escrowType === "product_sale" ? styles.radioActive : ""}`} />
-                  </div>
-                  <p className={styles.typeDesc}>
-                    Sell a physical or digital product. Funds are held in escrow until the buyer receives and confirms delivery.
-                  </p>
-                </div>
-
-                <div
-                  className={`${styles.typeCard} ${escrowType === "milestone" ? styles.typeActive : ""}`}
-                  onClick={() => setEscrowType("milestone")}
-                  id="type-milestone"
-                >
-                  <div className={styles.typeCardHeader}>
-                    <span className={styles.typeName}>🤝 Milestone Project</span>
-                    <span className={`${styles.radioDot} ${escrowType === "milestone" ? styles.radioActive : ""}`} />
-                  </div>
-                  <p className={styles.typeDesc}>
-                    Multi-stage escrow unlocked tranche-by-tranche as milestones are verified.
-                  </p>
-                </div>
-              </div>
-
-              {/* Form Inputs */}
-              <div className={styles.formSection}>
-                {/* Task Title */}
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel} htmlFor="task-title">
-                    {escrowType === "task_reward"
-                      ? "Task Title"
-                      : escrowType === "product_sale"
-                      ? "Product Name / Item Title"
-                      : "Project Title"}
-                  </label>
+              {/* Title & Amount */}
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Contract Title</label>
                   <input
-                    id="task-title"
                     type="text"
                     required
-                    className={styles.textInput}
-                    placeholder={
-                      escrowType === "task_reward"
-                        ? "e.g. Audit Smart Contract or Build React Component"
-                        : escrowType === "product_sale"
-                        ? "e.g. MacBook Pro 16 M4 Max"
-                        : "e.g. Protocol Upgrade Phase 1"
-                    }
+                    placeholder="e.g. Audit Smart Contract or Next.js App Design"
+                    className={styles.input}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
 
-                {/* Amount + Deadline Row */}
-                <div className={styles.gridTwo}>
-                  <div className={styles.inputGroup}>
-                    <div className={styles.labelRow}>
-                      <label className={styles.inputLabel} htmlFor="reward-deposit">
-                        {escrowType === "task_reward" ? "Reward Deposit (Qi)" : "Escrow Price (Qi)"}
-                      </label>
-                      <span className={styles.inputSub}>Wrapped Qi (WQI)</span>
-                    </div>
-                    <div className={styles.amountPrefixGroup}>
-                      <input
-                        id="reward-deposit"
-                        type="number"
-                        required
-                        min="1"
-                        className={styles.amountInput}
-                        value={totalAmount}
-                        onChange={(e) => setTotalAmount(e.target.value)}
-                      />
-                      <span className={styles.currencyBadge}>Qi</span>
-                    </div>
-                  </div>
-
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel} htmlFor="completion-window">
-                      Completion Window
-                    </label>
-                    <div className={styles.amountPrefixGroup}>
-                      <input
-                        id="completion-window"
-                        type="number"
-                        required
-                        min="1"
-                        max="90"
-                        className={styles.amountInput}
-                        value={deadlineDays}
-                        onChange={(e) => setDeadlineDays(e.target.value)}
-                      />
-                      <span className={styles.currencyBadge}>Days</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Milestone Tranches Toggle (for task_reward) */}
-                {escrowType === "task_reward" && (
-                  <div className={styles.inputGroup}>
-                    <label
-                      className={styles.inputLabel}
-                      style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={enableMilestones}
-                        onChange={(e) => setEnableMilestones(e.target.checked)}
-                        style={{ accentColor: "#00D4AA", width: "16px", height: "16px" }}
-                        id="enable-milestones"
-                      />
-                      Enable Milestone Tranches (Optional)
-                    </label>
-                  </div>
-                )}
-
-                {/* Milestone Builder */}
-                {showMilestones && (
-                  <div className={styles.milestoneSection} id="milestone-builder">
-                    <div className={styles.milestoneHeader}>
-                      <label className={styles.inputLabel}>Milestone Tranches</label>
-                      <span
-                        className={`${styles.milestoneSumBadge} ${
-                          totalPercent === 100 ? styles.milestoneSumValid : styles.milestoneSumInvalid
-                        }`}
-                      >
-                        Total: {totalPercent}%
-                      </span>
-                    </div>
-
-                    {milestones.map((m, idx) => (
-                      <div key={m.id} className={styles.milestoneRow}>
-                        <span className={styles.milestoneNum}>{idx + 1}</span>
-
-                        <div className={styles.milestoneBody}>
-                          <input
-                            type="text"
-                            className={styles.textInput}
-                            value={m.title}
-                            onChange={(e) => handleMilestoneTitleChange(m.id, e.target.value)}
-                            placeholder="Milestone description..."
-                          />
-                          <div className={styles.milestoneSliderRow}>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={m.percent}
-                              onChange={(e) => handleMilestonePercentChange(m.id, e.target.value)}
-                              className={styles.trancheSlider}
-                              style={{
-                                background: `linear-gradient(to right, rgba(0, 212, 170, 0.5) 0%, rgba(0, 212, 170, 0.5) ${m.percent}%, rgba(255, 255, 255, 0.08) ${m.percent}%, rgba(255, 255, 255, 0.08) 100%)`,
-                              }}
-                            />
-                            <span className={styles.tranchePercent}>{m.percent}%</span>
-                          </div>
-                          <div className={styles.trancheBar}>
-                            <div
-                              className={styles.trancheBarFill}
-                              style={{ width: `${m.percent}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          className={styles.deleteBtn}
-                          onClick={() => handleRemoveMilestone(m.id)}
-                          title="Remove milestone"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-
-                    <button
-                      type="button"
-                      className={styles.addMilestoneBtn}
-                      onClick={handleAddMilestone}
-                      id="add-milestone"
-                    >
-                      + Add Milestone Tranche
-                    </button>
-                  </div>
-                )}
-
-                {/* Description / Deliverables */}
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel} htmlFor="deliverables">
-                    {escrowType === "task_reward"
-                      ? "Deliverables & Instructions"
-                      : "Item Description & Delivery Requirements"}
-                  </label>
-                  <textarea
-                    id="deliverables"
-                    className={styles.textareaInput}
-                    placeholder={
-                      escrowType === "task_reward"
-                        ? "Specify task instructions, GitHub repository link, or deliverable criteria..."
-                        : "Describe item condition, shipping method, and delivery requirements..."
-                    }
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Total Escrow Amount (Qi)</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    className={styles.input}
+                    value={totalAmount}
+                    onChange={(e) => setTotalAmount(e.target.value)}
                   />
                 </div>
               </div>
 
-              {/* Submit Section */}
-              <div className={styles.submitSection}>
-                <div className={styles.totalSummaryRow}>
-                  <span className={styles.totalLabel}>
-                    {escrowType === "task_reward" ? "Total Task Reward Deposit" : "Total Escrow Value"}
-                  </span>
-                  <span className={styles.totalValue}>{totalAmount || 0} Qi</span>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={styles.deployBtn}
-                  id="deploy-task-reward"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className={styles.spinner} />
-                      Deploying Escrow Contract...
-                    </>
-                  ) : escrowType === "task_reward" ? (
-                    `Deploy Task Reward (${totalAmount || 0} Qi)`
-                  ) : escrowType === "product_sale" ? (
-                    `Deploy Product Escrow (${totalAmount || 0} Qi)`
-                  ) : (
-                    `Deploy Milestone Escrow (${totalAmount || 0} Qi)`
-                  )}
-                </button>
+              {/* Description */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Description & Scope of Work</label>
+                <textarea
+                  rows="4"
+                  placeholder="Specify clear deliverables, acceptance criteria, and payout terms..."
+                  className={styles.textarea}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
+
+              {/* Deadline */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Delivery Deadline (Days)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="90"
+                  className={styles.input}
+                  value={deadlineDays}
+                  onChange={(e) => setDeadlineDays(e.target.value)}
+                  style={{ width: "200px" }}
+                />
+              </div>
+
+              {/* Milestone Tranches */}
+              {showMilestones && (
+                <div className={styles.milestoneSection}>
+                  <div className={styles.milestoneHeader}>
+                    <div>
+                      <h4 className={styles.milestoneTitle}>Milestone Payout Tranches</h4>
+                      <p className={styles.milestoneSub}>Tranche percentages must sum to exactly 100%.</p>
+                    </div>
+                    <span className={totalPercent === 100 ? styles.percentValid : styles.percentInvalid}>
+                      Total: {totalPercent}%
+                    </span>
+                  </div>
+
+                  {milestones.map((m) => (
+                    <div key={m.id} className={styles.milestoneRow}>
+                      <input
+                        type="text"
+                        className={styles.input}
+                        value={m.title}
+                        onChange={(e) => handleMilestoneTitleChange(m.id, e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        className={styles.inputPercent}
+                        value={m.percent}
+                        onChange={(e) => handleMilestonePercentChange(m.id, e.target.value)}
+                      />
+                      <span className={styles.percentSymbol}>%</span>
+                      <button
+                        type="button"
+                        className={styles.removeBtn}
+                        onClick={() => handleRemoveMilestone(m.id)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  <button type="button" className="btn btn-outlined btn-sm" onClick={handleAddMilestone}>
+                    + Add Tranche
+                  </button>
+                </div>
+              )}
+
+              {/* Submit */}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSubmitting || loading}
+                style={{ width: "100%", padding: "16px", fontSize: "1rem", marginTop: "24px" }}
+              >
+                {isSubmitting || loading ? "Deploying Smart Contract to Quai Network..." : `Deploy Escrow Contract (${totalAmount} Qi)`}
+              </button>
             </form>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* Success Receipt Card */
+          <div className={styles.successCard}>
+            <div className={styles.successIcon}>✓</div>
+            <h2 className={styles.successTitle}>Escrow Contract Deployed! 🎉</h2>
+            <p className={styles.successSub}>
+              Smart contract deployed on Quai Cyprus-1. Funds locked in WQI escrow until delivery confirmation.
+            </p>
+
+            {createdTxHash && (
+              <div style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                marginBottom: "20px",
+                fontSize: "0.85rem",
+                wordBreak: "break-all"
+              }}>
+                <span style={{ color: "#94A3B8" }}>Transaction Hash: </span>
+                <a
+                  href={`https://orchard.quaiscan.io/tx/${createdTxHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#00D4AA", textDecoration: "underline" }}
+                >
+                  {createdTxHash}
+                </a>
+              </div>
+            )}
+
+            <div className={styles.linkBox}>
+              <input type="text" readOnly value={createdOrderLink} className={styles.linkInput} />
+              <button className="btn btn-primary" onClick={handleCopyLink}>
+                {toastVisible ? "✓ Copied!" : "Copy Link"}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+              <FarcasterShareButton
+                text={`Created a trustless escrow payment for ${title} (${totalAmount} Qi) on Quai Network via MoneePay! ⚡`}
+                buttonText="Share Escrow Frame to Farcaster"
+              />
+              <button className="btn btn-outlined" onClick={handleCreateAnother}>
+                Create Another Contract
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
