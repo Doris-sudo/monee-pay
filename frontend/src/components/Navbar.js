@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
@@ -24,8 +24,12 @@ export default function Navbar() {
   } = useWallet();
 
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isWalletMenuOpen, setIsWalletMenuOpen] = useState(false);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [activeOrg, setActiveOrg] = useState(null); // { name, domain, treasury, role }
+
+  const menuRef = useRef(null);
 
   const handleWalletConnect = async (walletName) => {
     const success = await connectWallet(walletName);
@@ -36,15 +40,38 @@ export default function Navbar() {
 
   const handleToggleWallet = () => {
     if (isConnected) {
-      disconnectWallet();
+      setIsWalletMenuOpen((prev) => !prev);
     } else {
       setIsWalletModalOpen(true);
     }
   };
 
+  const handleDisconnect = () => {
+    disconnectWallet();
+    setIsWalletMenuOpen(false);
+  };
+
+  const handleCopyAddress = () => {
+    if (!account) return;
+    navigator.clipboard.writeText(account);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleOrgRegistered = (orgData) => {
     setActiveOrg(orgData);
   };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsWalletMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <>
@@ -171,23 +198,64 @@ export default function Navbar() {
 
             <FarcasterAddFrameButton />
 
-            <button 
-              className={isConnected ? "btn btn-outlined" : "btn btn-primary"}
-              onClick={handleToggleWallet}
-              id="connect-wallet-btn"
-              disabled={isConnecting && !isConnected}
-            >
-              {isConnected ? (
-                <>
-                  <span className={styles.statusDot}></span>
-                  {truncatedAddress}
-                </>
-              ) : isConnecting ? (
-                "Connecting..."
-              ) : (
-                "Connect Wallet"
+            {/* Connected Wallet Dropdown & Disconnect Menu */}
+            <div className={styles.walletMenuWrapper} ref={menuRef}>
+              <button 
+                className={isConnected ? styles.walletBtnConnected : "btn btn-primary"}
+                onClick={handleToggleWallet}
+                id="connect-wallet-btn"
+                disabled={isConnecting && !isConnected}
+              >
+                {isConnected ? (
+                  <>
+                    <span className={styles.statusDot}></span>
+                    {truncatedAddress}
+                    <span style={{ fontSize: "0.7rem", opacity: 0.7 }}>▾</span>
+                  </>
+                ) : isConnecting ? (
+                  "Connecting..."
+                ) : (
+                  "Connect Wallet"
+                )}
+              </button>
+
+              {/* Popover Menu */}
+              {isConnected && isWalletMenuOpen && (
+                <div className={styles.walletDropdown}>
+                  <div className={styles.dropdownHeader}>
+                    <span className={styles.dropdownAddress}>{truncatedAddress}</span>
+                    <button className={styles.copyBtn} onClick={handleCopyAddress}>
+                      {copied ? "✓ Copied" : "📋 Copy"}
+                    </button>
+                  </div>
+
+                  <div className={styles.networkBadge}>
+                    <span className={styles.statusDot}></span>
+                    <span>Quai Cyprus-1 (Chain 15000)</span>
+                  </div>
+
+                  <div className={styles.balanceSection}>
+                    <div className={styles.balanceRow}>
+                      <span className={styles.balanceLabel}>Native Qi / QUAI:</span>
+                      <span className={styles.balanceVal}>⚡ {balances.qi}</span>
+                    </div>
+                    <div className={styles.balanceRow}>
+                      <span className={styles.balanceLabel}>Wrapped Qi (WQI):</span>
+                      <span className={styles.balanceVal} style={{ color: "#00D4AA" }}>🔒 {balances.wqi}</span>
+                    </div>
+                  </div>
+
+                  <button className={styles.disconnectBtn} onClick={handleDisconnect}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Disconnect Wallet
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </header>

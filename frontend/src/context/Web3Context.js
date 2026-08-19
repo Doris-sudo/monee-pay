@@ -51,25 +51,49 @@ export function Web3Provider({ children }) {
   const fetchBalances = useCallback(async (addr) => {
     if (!addr) return;
     try {
-      const rpcProvider = new quais.JsonRpcProvider(QUAI_CYPRUS1_RPC_URL, undefined, { usePathing: true });
+      let quaiFormatted = "0.00";
+      const pelagus = getPelagusProvider();
 
-      // Fetch QUAI native balance
-      const quaiBalWei = await rpcProvider.getBalance(addr).catch(() => 0n);
-      const quaiFormatted = parseFloat(quais.formatEther(quaiBalWei)).toFixed(4);
+      // 1. Try querying directly from connected browser wallet provider (instant & CORS-free)
+      if (pelagus) {
+        try {
+          const hexBal = await pelagus.request({ method: "eth_getBalance", params: [addr, "latest"] });
+          if (hexBal) {
+            const bigBal = BigInt(hexBal);
+            quaiFormatted = parseFloat(quais.formatEther(bigBal)).toFixed(2);
+          }
+        } catch (err) {
+          console.warn("Wallet provider balance query error:", err);
+        }
+      }
 
-      // Fetch WQI balance using MockWQI contract
-      let wqiFormatted = "0.0000";
+      // 2. Fallback query via JsonRpcProvider if 0.00
+      if (quaiFormatted === "0.00") {
+        try {
+          const rpcProvider = new quais.JsonRpcProvider(QUAI_CYPRUS1_RPC_URL, undefined, { usePathing: true });
+          const quaiBalWei = await rpcProvider.getBalance(addr).catch(() => 0n);
+          if (quaiBalWei > 0n) {
+            quaiFormatted = parseFloat(quais.formatEther(quaiBalWei)).toFixed(2);
+          }
+        } catch (err) {
+          console.warn("RPC provider balance query error:", err);
+        }
+      }
+
+      // 3. Fetch WQI balance using MockWQI contract
+      let wqiFormatted = "0.00";
       try {
+        const rpcProvider = new quais.JsonRpcProvider(QUAI_CYPRUS1_RPC_URL, undefined, { usePathing: true });
         const wqiContract = new quais.Contract(MOCK_WQI_ADDRESS, WQI_ABI, rpcProvider);
         const wqiBalWei = await wqiContract.balanceOf(addr);
-        wqiFormatted = parseFloat(quais.formatEther(wqiBalWei)).toFixed(4);
+        wqiFormatted = parseFloat(quais.formatEther(wqiBalWei)).toFixed(2);
       } catch (err) {
         console.warn("Error fetching WQI balance:", err);
       }
 
       setBalances({
         quai: quaiFormatted,
-        qi: quaiFormatted, // Dual ledger mapping
+        qi: quaiFormatted, // Native Qi mapping
         wqi: wqiFormatted,
       });
     } catch (err) {
@@ -144,6 +168,7 @@ export function Web3Provider({ children }) {
       const connectedAddr = accounts[0];
       setAccount(connectedAddr);
       setIsConnected(true);
+      setIsConnecting(false);
 
       const currentChain = await pelagus.request({ method: "eth_chainId" });
       const parsedChainId = typeof currentChain === "string" ? parseInt(currentChain, 16) : currentChain;
@@ -154,7 +179,6 @@ export function Web3Provider({ children }) {
       }
 
       await fetchBalances(connectedAddr);
-      setIsConnecting(false);
       return true;
     } catch (err) {
       console.error("Wallet connection error:", err);
@@ -234,7 +258,7 @@ export function Web3Provider({ children }) {
   // Periodically refresh balances
   useEffect(() => {
     if (!account) return;
-    const interval = setInterval(() => fetchBalances(account), 12000);
+    const interval = setInterval(() => fetchBalances(account), 10000);
     return () => clearInterval(interval);
   }, [account, fetchBalances]);
 
