@@ -82,6 +82,14 @@ export WQI_ADDRESS=<WQI_TOKEN_ADDRESS>
 forge script script/Deploy.s.sol --rpc-url <QUAI_RPC_URL> --broadcast --private-key <DEPLOYER_KEY>
 ```
 
+### Deployed Addresses (Quai Orchard Testnet — Cyprus-1 Zone)
+
+- **MockWQI**: [`0x00354572C988dB5ca96827B091a59dAea71Bfbc6`](https://orchard.quaiscan.io/address/0x00354572C988dB5ca96827B091a59dAea71Bfbc6)
+- **MilestoneEscrow**: [`0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA`](https://orchard.quaiscan.io/address/0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA)
+- **ProductEscrow**: [`0x0067f487e59f0C45922854F32B6d8deD8e820776`](https://orchard.quaiscan.io/address/0x0067f487e59f0C45922854F32B6d8deD8e820776)
+- **BatchPayroll**: [`0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB`](https://orchard.quaiscan.io/address/0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB)
+
+
 ---
 
 ## Contract Details

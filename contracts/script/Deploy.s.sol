@@ -5,16 +5,22 @@ import {Script, console} from "forge-std/Script.sol";
 import {MilestoneEscrow} from "../src/MilestoneEscrow.sol";
 import {ProductEscrow} from "../src/ProductEscrow.sol";
 import {BatchPayroll} from "../src/BatchPayroll.sol";
+import {MockWQI} from "../test/mocks/MockWQI.sol";
 
 /// @title Deploy — MoneePay Protocol Deployment Script
-/// @notice Deploys all 3 core contracts to Quai Network devnet/testnet.
-/// @dev Usage: forge script script/Deploy.s.sol --rpc-url <QUAI_RPC> --broadcast --private-key <KEY>
+/// @notice Deploys all core contracts (and MockWQI if WQI_ADDRESS is not set) to target network.
+/// @dev Usage: forge script script/Deploy.s.sol --rpc-url <RPC_URL> --broadcast --env-file .env
 contract DeployScript is Script {
     function run() external {
-        // WQI token address on Quai Network (update per environment)
-        address wqiAddress = vm.envAddress("WQI_ADDRESS");
+        address wqiAddress = vm.envOr("WQI_ADDRESS", address(0));
 
         vm.startBroadcast();
+
+        if (wqiAddress == address(0)) {
+            MockWQI mockWqi = new MockWQI();
+            wqiAddress = address(mockWqi);
+            console.log("MockWQI deployed at:", wqiAddress);
+        }
 
         // ── Deploy Pillar 1: Milestone Escrow ──
         MilestoneEscrow milestoneEscrow = new MilestoneEscrow(wqiAddress);
@@ -35,3 +41,4 @@ contract DeployScript is Script {
         console.log("WQI Token:", wqiAddress);
     }
 }
+
