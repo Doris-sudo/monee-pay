@@ -18,7 +18,6 @@ export default function Navbar() {
     isConnecting,
     isCorrectNetwork,
     balances,
-    error,
     connectWallet,
     disconnectWallet,
     switchNetwork,
@@ -85,7 +84,7 @@ export default function Navbar() {
         <div className={styles.container}>
           <div className={styles.brand}>
             <div className={styles.logoIcon}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#00D4AA" strokeWidth="2" strokeLinejoin="round"/>
                 <path d="M12 6L7 9V15L12 18L17 15V9L12 6Z" fill="url(#logo-grad)"/>
                 <defs>
@@ -176,15 +175,15 @@ export default function Navbar() {
               className={isConnected ? "btn btn-outlined" : "btn btn-primary"}
               onClick={handleToggleWallet}
               id="connect-wallet-btn"
-              disabled={isConnecting}
+              disabled={isConnecting && !isConnected}
             >
-              {isConnecting ? (
-                "Connecting..."
-              ) : isConnected ? (
+              {isConnected ? (
                 <>
                   <span className={styles.statusDot}></span>
                   {truncatedAddress}
                 </>
+              ) : isConnecting ? (
+                "Connecting..."
               ) : (
                 "Connect Wallet"
               )}
