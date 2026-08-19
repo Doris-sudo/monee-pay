@@ -16,6 +16,8 @@ contract DeployScript is Script {
 
         vm.startBroadcast();
 
+        address deployer = msg.sender;
+
         if (wqiAddress == address(0)) {
             MockWQI mockWqi = new MockWQI();
             wqiAddress = address(mockWqi);
@@ -23,11 +25,11 @@ contract DeployScript is Script {
         }
 
         // ── Deploy Pillar 1: Milestone Escrow ──
-        MilestoneEscrow milestoneEscrow = new MilestoneEscrow(wqiAddress);
+        MilestoneEscrow milestoneEscrow = new MilestoneEscrow(wqiAddress, deployer);
         console.log("MilestoneEscrow deployed at:", address(milestoneEscrow));
 
         // ── Deploy Pillar 2: Product Escrow ──
-        ProductEscrow productEscrow = new ProductEscrow(wqiAddress);
+        ProductEscrow productEscrow = new ProductEscrow(wqiAddress, deployer);
         console.log("ProductEscrow deployed at:", address(productEscrow));
 
         // ── Deploy Pillar 3: Batch Payroll ──

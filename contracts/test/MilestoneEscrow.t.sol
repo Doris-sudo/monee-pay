@@ -12,12 +12,13 @@ contract MilestoneEscrowTest is Test {
     address public creator = makeAddr("creator");
     address public solver = makeAddr("solver");
     address public outsider = makeAddr("outsider");
+    address public arbitrator = makeAddr("arbitrator");
 
     uint256 public constant TASK_AMOUNT = 1200 ether;
 
     function setUp() public {
         wqi = new MockWQI();
-        escrow = new MilestoneEscrow(address(wqi));
+        escrow = new MilestoneEscrow(address(wqi), arbitrator);
 
         vm.deal(creator, 10_000 ether);
         vm.deal(solver, 100 ether);
@@ -279,5 +280,83 @@ contract MilestoneEscrowTest is Test {
 
         vm.prank(creator);
         return escrow.createTask{value: TASK_AMOUNT}(titles, percents);
+    }
+
+    function _createDisputedTask() internal returns (bytes32) {
+        bytes32 taskId = _createSampleTask();
+        vm.prank(creator);
+        escrow.assignSolver(taskId, solver);
+        vm.prank(creator);
+        escrow.openDispute(taskId);
+        return taskId;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //                     DISPUTE RESOLUTION
+    // ═══════════════════════════════════════════════════════════════
+
+    function test_ResolveDispute_FullRefundToCreator() public {
+        bytes32 taskId = _createDisputedTask();
+
+        uint256 creatorBefore = creator.balance;
+        uint256 solverBefore = solver.balance;
+
+        vm.prank(arbitrator);
+        escrow.resolveDispute(taskId, 100); // 100% to creator
+
+        assertEq(creator.balance - creatorBefore, TASK_AMOUNT);
+        assertEq(solver.balance, solverBefore);
+
+        (,,,,, MilestoneEscrow.TaskStatus status) = escrow.tasks(taskId);
+        assertEq(uint8(status), uint8(MilestoneEscrow.TaskStatus.Completed));
+    }
+
+    function test_ResolveDispute_FullPayoutToSolver() public {
+        bytes32 taskId = _createDisputedTask();
+
+        uint256 creatorBefore = creator.balance;
+        uint256 solverBefore = solver.balance;
+
+        vm.prank(arbitrator);
+        escrow.resolveDispute(taskId, 0); // 0% to creator, 100% to solver
+
+        assertEq(creator.balance, creatorBefore);
+        assertEq(solver.balance - solverBefore, TASK_AMOUNT);
+    }
+
+    function test_ResolveDispute_5050Split() public {
+        bytes32 taskId = _createDisputedTask();
+
+        uint256 creatorBefore = creator.balance;
+        uint256 solverBefore = solver.balance;
+
+        vm.prank(arbitrator);
+        escrow.resolveDispute(taskId, 50);
+
+        assertEq(creator.balance - creatorBefore, TASK_AMOUNT / 2);
+        assertEq(solver.balance - solverBefore, TASK_AMOUNT / 2);
+    }
+
+    function test_ResolveDispute_RevertsForNonArbitrator() public {
+        bytes32 taskId = _createDisputedTask();
+
+        vm.prank(outsider);
+        vm.expectRevert(MilestoneEscrow.OnlyArbitrator.selector);
+        escrow.resolveDispute(taskId, 50);
+    }
+
+    function test_ResolveDispute_RevertsIfNotDisputed() public {
+        bytes32 taskId = _createSampleTask();
+
+        vm.prank(arbitrator);
+        vm.expectRevert(MilestoneEscrow.TaskNotDisputed.selector);
+        escrow.resolveDispute(taskId, 50);
+    }
+
+    function test_TransferArbitrator() public {
+        address newArb = makeAddr("newArbitrator");
+        vm.prank(arbitrator);
+        escrow.transferArbitrator(newArb);
+        assertEq(escrow.arbitrator(), newArb);
     }
 }

@@ -10,6 +10,14 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /// @dev Native Qi is wrapped to WQI on deposit and unwrapped back to Qi on each milestone release.
 contract MilestoneEscrow is ReentrancyGuard {
     // ═══════════════════════════════════════════════════════════════════════
+    //                            MODIFIERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    modifier onlyArbitrator() {
+        if (msg.sender != arbitrator) revert OnlyArbitrator();
+        _;
+    }
+    // ═══════════════════════════════════════════════════════════════════════
     //                              TYPES
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -46,6 +54,7 @@ contract MilestoneEscrow is ReentrancyGuard {
     // ═══════════════════════════════════════════════════════════════════════
 
     IWQI public immutable wqi;
+    address public arbitrator;
 
     mapping(bytes32 => Task) public tasks;
     mapping(bytes32 => Milestone[]) public milestones;
@@ -73,6 +82,15 @@ contract MilestoneEscrow is ReentrancyGuard {
 
     event DisputeInitiated(bytes32 indexed taskId, address indexed initiator);
 
+    event DisputeResolved(
+        bytes32 indexed taskId,
+        address indexed arbitrator,
+        uint256 creatorAmount,
+        uint256 solverAmount
+    );
+
+    event ArbitratorTransferred(address indexed oldArbitrator, address indexed newArbitrator);
+
     event TaskCancelled(bytes32 indexed taskId, address indexed creator, uint256 refundedAmount);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -89,14 +107,19 @@ contract MilestoneEscrow is ReentrancyGuard {
     error MilestoneNotActive();
     error TaskAlreadyDisputed();
     error InsufficientDeposit();
+    error OnlyArbitrator();
+    error TaskNotDisputed();
+    error InvalidSplit();
 
     // ═══════════════════════════════════════════════════════════════════════
     //                            CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
 
     /// @param _wqi Address of the deployed Wrapped Qi (WQI) ERC-20 contract on Quai Network.
-    constructor(address _wqi) {
+    /// @param _arbitrator Address of the dispute arbitrator.
+    constructor(address _wqi, address _arbitrator) {
         wqi = IWQI(_wqi);
+        arbitrator = _arbitrator;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -211,6 +234,46 @@ contract MilestoneEscrow is ReentrancyGuard {
 
         task.status = TaskStatus.Disputed;
         emit DisputeInitiated(_taskId, msg.sender);
+    }
+
+    /// @notice Resolve a dispute by splitting remaining escrow between creator and solver.
+    /// @param _taskId The disputed task.
+    /// @param _creatorPercent Percentage of remaining funds to refund to creator (0-100).
+    /// @dev The solver receives (100 - _creatorPercent)% of remaining funds.
+    function resolveDispute(bytes32 _taskId, uint8 _creatorPercent) external nonReentrant onlyArbitrator {
+        Task storage task = tasks[_taskId];
+        if (task.creator == address(0)) revert TaskNotFound();
+        if (task.status != TaskStatus.Disputed) revert TaskNotDisputed();
+        if (_creatorPercent > 100) revert InvalidSplit();
+
+        uint256 remaining = task.totalAmount - task.releasedAmount;
+        uint256 creatorAmount = (remaining * _creatorPercent) / 100;
+        uint256 solverAmount = remaining - creatorAmount;
+
+        task.status = TaskStatus.Completed;
+        task.releasedAmount = task.totalAmount;
+
+        // Unwrap WQI → Qi and distribute
+        wqi.withdraw(remaining);
+
+        if (creatorAmount > 0) {
+            (bool s1,) = payable(task.creator).call{value: creatorAmount}("");
+            require(s1, "Creator transfer failed");
+        }
+        if (solverAmount > 0) {
+            (bool s2,) = payable(task.solver).call{value: solverAmount}("");
+            require(s2, "Solver transfer failed");
+        }
+
+        emit DisputeResolved(_taskId, msg.sender, creatorAmount, solverAmount);
+    }
+
+    /// @notice Transfer the arbitrator role to a new address.
+    /// @param _newArbitrator The new arbitrator address.
+    function transferArbitrator(address _newArbitrator) external onlyArbitrator {
+        address old = arbitrator;
+        arbitrator = _newArbitrator;
+        emit ArbitratorTransferred(old, _newArbitrator);
     }
 
     /// @notice Cancel a task before a solver is assigned and refund the creator.

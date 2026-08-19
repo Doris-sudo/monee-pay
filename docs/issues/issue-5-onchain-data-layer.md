@@ -12,8 +12,8 @@ Without this, users will see fake placeholder data instead of actual tasks, orde
 | Contract | Address |
 |----------|---------|
 | MockWQI | `0x00354572C988dB5ca96827B091a59dAea71Bfbc6` |
-| MilestoneEscrow | `0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA` |
-| ProductEscrow | `0x0067f487e59f0C45922854F32B6d8deD8e820776` |
+| MilestoneEscrow | `0x0033bAa02477389a442580B63987214AB4097767` |
+| ProductEscrow | `0x003645ae7083baaBff80b2D6f05ad182e3782e0C` |
 | BatchPayroll | `0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB` |
 
 ## Current State (What Needs Replacing)

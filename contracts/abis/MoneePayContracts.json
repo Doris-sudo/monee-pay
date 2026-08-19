@@ -1,6 +1,7 @@
 {
   "network": "Quai Testnet (Orchard / Cyprus-1)",
   "chainId": 15000,
+  "arbitrator": "0x007abf8E01568a43499A1Ec754D0eD218d7c4074",
   "contracts": {
     "MockWQI": {
       "address": "0x00354572C988dB5ca96827B091a59dAea71Bfbc6",
@@ -383,13 +384,18 @@
       ]
     },
     "MilestoneEscrow": {
-      "address": "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
+      "address": "0x0033bAa02477389a442580B63987214AB4097767",
       "abi": [
         {
           "type": "constructor",
           "inputs": [
             {
               "name": "_wqi",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "_arbitrator",
               "type": "address",
               "internalType": "address"
             }
@@ -412,6 +418,19 @@
           ],
           "outputs": [],
           "stateMutability": "nonpayable"
+        },
+        {
+          "type": "function",
+          "name": "arbitrator",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "type": "address",
+              "internalType": "address"
+            }
+          ],
+          "stateMutability": "view"
         },
         {
           "type": "function",
@@ -577,6 +596,24 @@
         },
         {
           "type": "function",
+          "name": "resolveDispute",
+          "inputs": [
+            {
+              "name": "_taskId",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "_creatorPercent",
+              "type": "uint8",
+              "internalType": "uint8"
+            }
+          ],
+          "outputs": [],
+          "stateMutability": "nonpayable"
+        },
+        {
+          "type": "function",
           "name": "taskCount",
           "inputs": [],
           "outputs": [
@@ -634,6 +671,19 @@
         },
         {
           "type": "function",
+          "name": "transferArbitrator",
+          "inputs": [
+            {
+              "name": "_newArbitrator",
+              "type": "address",
+              "internalType": "address"
+            }
+          ],
+          "outputs": [],
+          "stateMutability": "nonpayable"
+        },
+        {
+          "type": "function",
           "name": "wqi",
           "inputs": [],
           "outputs": [
@@ -644,6 +694,25 @@
             }
           ],
           "stateMutability": "view"
+        },
+        {
+          "type": "event",
+          "name": "ArbitratorTransferred",
+          "inputs": [
+            {
+              "name": "oldArbitrator",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+            },
+            {
+              "name": "newArbitrator",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+            }
+          ],
+          "anonymous": false
         },
         {
           "type": "event",
@@ -660,6 +729,37 @@
               "type": "address",
               "indexed": true,
               "internalType": "address"
+            }
+          ],
+          "anonymous": false
+        },
+        {
+          "type": "event",
+          "name": "DisputeResolved",
+          "inputs": [
+            {
+              "name": "taskId",
+              "type": "bytes32",
+              "indexed": true,
+              "internalType": "bytes32"
+            },
+            {
+              "name": "arbitrator",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+            },
+            {
+              "name": "creatorAmount",
+              "type": "uint256",
+              "indexed": false,
+              "internalType": "uint256"
+            },
+            {
+              "name": "solverAmount",
+              "type": "uint256",
+              "indexed": false,
+              "internalType": "uint256"
             }
           ],
           "anonymous": false
@@ -782,12 +882,22 @@
         },
         {
           "type": "error",
+          "name": "InvalidSplit",
+          "inputs": []
+        },
+        {
+          "type": "error",
           "name": "MilestoneNotActive",
           "inputs": []
         },
         {
           "type": "error",
           "name": "NoSolverAssigned",
+          "inputs": []
+        },
+        {
+          "type": "error",
+          "name": "OnlyArbitrator",
           "inputs": []
         },
         {
@@ -822,19 +932,29 @@
         },
         {
           "type": "error",
+          "name": "TaskNotDisputed",
+          "inputs": []
+        },
+        {
+          "type": "error",
           "name": "TaskNotFound",
           "inputs": []
         }
       ]
     },
     "ProductEscrow": {
-      "address": "0x0067f487e59f0C45922854F32B6d8deD8e820776",
+      "address": "0x003645ae7083baaBff80b2D6f05ad182e3782e0C",
       "abi": [
         {
           "type": "constructor",
           "inputs": [
             {
               "name": "_wqi",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "_arbitrator",
               "type": "address",
               "internalType": "address"
             }
@@ -844,6 +964,19 @@
         {
           "type": "receive",
           "stateMutability": "payable"
+        },
+        {
+          "type": "function",
+          "name": "arbitrator",
+          "inputs": [],
+          "outputs": [
+            {
+              "name": "",
+              "type": "address",
+              "internalType": "address"
+            }
+          ],
+          "stateMutability": "view"
         },
         {
           "type": "function",
@@ -1032,6 +1165,37 @@
         },
         {
           "type": "function",
+          "name": "resolveDispute",
+          "inputs": [
+            {
+              "name": "_orderId",
+              "type": "bytes32",
+              "internalType": "bytes32"
+            },
+            {
+              "name": "_buyerPercent",
+              "type": "uint8",
+              "internalType": "uint8"
+            }
+          ],
+          "outputs": [],
+          "stateMutability": "nonpayable"
+        },
+        {
+          "type": "function",
+          "name": "transferArbitrator",
+          "inputs": [
+            {
+              "name": "_newArbitrator",
+              "type": "address",
+              "internalType": "address"
+            }
+          ],
+          "outputs": [],
+          "stateMutability": "nonpayable"
+        },
+        {
+          "type": "function",
           "name": "wqi",
           "inputs": [],
           "outputs": [
@@ -1042,6 +1206,25 @@
             }
           ],
           "stateMutability": "view"
+        },
+        {
+          "type": "event",
+          "name": "ArbitratorTransferred",
+          "inputs": [
+            {
+              "name": "oldArbitrator",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+            },
+            {
+              "name": "newArbitrator",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+            }
+          ],
+          "anonymous": false
         },
         {
           "type": "event",
@@ -1083,6 +1266,37 @@
               "type": "address",
               "indexed": true,
               "internalType": "address"
+            }
+          ],
+          "anonymous": false
+        },
+        {
+          "type": "event",
+          "name": "DisputeResolved",
+          "inputs": [
+            {
+              "name": "orderId",
+              "type": "bytes32",
+              "indexed": true,
+              "internalType": "bytes32"
+            },
+            {
+              "name": "arbitrator",
+              "type": "address",
+              "indexed": true,
+              "internalType": "address"
+            },
+            {
+              "name": "buyerAmount",
+              "type": "uint256",
+              "indexed": false,
+              "internalType": "uint256"
+            },
+            {
+              "name": "sellerAmount",
+              "type": "uint256",
+              "indexed": false,
+              "internalType": "uint256"
             }
           ],
           "anonymous": false
@@ -1222,6 +1436,16 @@
         },
         {
           "type": "error",
+          "name": "InvalidSplit",
+          "inputs": []
+        },
+        {
+          "type": "error",
+          "name": "OnlyArbitrator",
+          "inputs": []
+        },
+        {
+          "type": "error",
           "name": "OnlyBuyer",
           "inputs": []
         },
@@ -1233,6 +1457,11 @@
         {
           "type": "error",
           "name": "OnlySeller",
+          "inputs": []
+        },
+        {
+          "type": "error",
+          "name": "OrderNotDisputed",
           "inputs": []
         },
         {

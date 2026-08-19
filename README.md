@@ -104,9 +104,10 @@ The seller/solver knows the money is secured upfront. The buyer/creator knows fu
 | Contract | Pillar / Description | Address | Explorer Link |
 |----------|----------------------|---------|---------------|
 | `MockWQI.sol` | **Wrapped Qi ERC-20 Token** | `0x00354572C988dB5ca96827B091a59dAea71Bfbc6` | [View on Quaiscan](https://orchard.quaiscan.io/address/0x00354572C988dB5ca96827B091a59dAea71Bfbc6) |
-| `MilestoneEscrow.sol` | **Pillar 1 — Task Rewards** | `0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA` | [View on Quaiscan](https://orchard.quaiscan.io/address/0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA) |
-| `ProductEscrow.sol` | **Pillar 2 — Product Sales** | `0x0067f487e59f0C45922854F32B6d8deD8e820776` | [View on Quaiscan](https://orchard.quaiscan.io/address/0x0067f487e59f0C45922854F32B6d8deD8e820776) |
+| `MilestoneEscrow.sol` | **Pillar 1 — Task Rewards** | `0x0033bAa02477389a442580B63987214AB4097767` | [View on Quaiscan](https://orchard.quaiscan.io/address/0x0033bAa02477389a442580B63987214AB4097767) |
+| `ProductEscrow.sol` | **Pillar 2 — Product Sales** | `0x003645ae7083baaBff80b2D6f05ad182e3782e0C` | [View on Quaiscan](https://orchard.quaiscan.io/address/0x003645ae7083baaBff80b2D6f05ad182e3782e0C) |
 | `BatchPayroll.sol` | **Pillar 3 — Team Payroll** | `0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB` | [View on Quaiscan](https://orchard.quaiscan.io/address/0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB) |
+
 
 ---
 

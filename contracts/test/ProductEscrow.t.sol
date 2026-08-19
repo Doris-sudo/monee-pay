@@ -12,13 +12,14 @@ contract ProductEscrowTest is Test {
     address public seller = makeAddr("seller");
     address public buyer = makeAddr("buyer");
     address public outsider = makeAddr("outsider");
+    address public arbitrator = makeAddr("arbitrator");
 
     uint256 public constant PRICE = 500 ether;
     uint256 public constant DEADLINE_DAYS = 7;
 
     function setUp() public {
         wqi = new MockWQI();
-        escrow = new ProductEscrow(address(wqi));
+        escrow = new ProductEscrow(address(wqi), arbitrator);
 
         vm.deal(seller, 100 ether);
         vm.deal(buyer, 10_000 ether);
@@ -244,5 +245,81 @@ contract ProductEscrowTest is Test {
         vm.prank(buyer);
         escrow.depositEscrow{value: PRICE}(orderId);
         return orderId;
+    }
+
+    function _createDisputedOrder() internal returns (bytes32) {
+        bytes32 orderId = _createAndFundOrder();
+        vm.prank(buyer);
+        escrow.openDispute(orderId);
+        return orderId;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //                     DISPUTE RESOLUTION
+    // ═══════════════════════════════════════════════════════════════
+
+    function test_ResolveDispute_FullRefundToBuyer() public {
+        bytes32 orderId = _createDisputedOrder();
+
+        uint256 buyerBefore = buyer.balance;
+        uint256 sellerBefore = seller.balance;
+
+        vm.prank(arbitrator);
+        escrow.resolveDispute(orderId, 100); // 100% to buyer
+
+        assertEq(buyer.balance - buyerBefore, PRICE);
+        assertEq(seller.balance, sellerBefore);
+
+        (,,,,,,, ProductEscrow.OrderStatus status) = escrow.orders(orderId);
+        assertEq(uint8(status), uint8(ProductEscrow.OrderStatus.Completed));
+    }
+
+    function test_ResolveDispute_FullPayoutToSeller() public {
+        bytes32 orderId = _createDisputedOrder();
+
+        uint256 buyerBefore = buyer.balance;
+        uint256 sellerBefore = seller.balance;
+
+        vm.prank(arbitrator);
+        escrow.resolveDispute(orderId, 0); // 0% to buyer, 100% to seller
+
+        assertEq(buyer.balance, buyerBefore);
+        assertEq(seller.balance - sellerBefore, PRICE);
+    }
+
+    function test_ResolveDispute_7030Split() public {
+        bytes32 orderId = _createDisputedOrder();
+
+        uint256 buyerBefore = buyer.balance;
+        uint256 sellerBefore = seller.balance;
+
+        vm.prank(arbitrator);
+        escrow.resolveDispute(orderId, 70); // 70% buyer, 30% seller
+
+        assertEq(buyer.balance - buyerBefore, (PRICE * 70) / 100);
+        assertEq(seller.balance - sellerBefore, PRICE - (PRICE * 70) / 100);
+    }
+
+    function test_ResolveDispute_RevertsForNonArbitrator() public {
+        bytes32 orderId = _createDisputedOrder();
+
+        vm.prank(outsider);
+        vm.expectRevert(ProductEscrow.OnlyArbitrator.selector);
+        escrow.resolveDispute(orderId, 50);
+    }
+
+    function test_ResolveDispute_RevertsIfNotDisputed() public {
+        bytes32 orderId = _createAndFundOrder();
+
+        vm.prank(arbitrator);
+        vm.expectRevert(ProductEscrow.OrderNotDisputed.selector);
+        escrow.resolveDispute(orderId, 50);
+    }
+
+    function test_TransferArbitrator() public {
+        address newArb = makeAddr("newArbitrator");
+        vm.prank(arbitrator);
+        escrow.transferArbitrator(newArb);
+        assertEq(escrow.arbitrator(), newArb);
     }
 }

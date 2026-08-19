@@ -10,6 +10,14 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /// @dev Native Qi is wrapped to WQI on buyer deposit and unwrapped back to Qi on delivery confirmation.
 contract ProductEscrow is ReentrancyGuard {
     // ═══════════════════════════════════════════════════════════════════════
+    //                            MODIFIERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    modifier onlyArbitrator() {
+        if (msg.sender != arbitrator) revert OnlyArbitrator();
+        _;
+    }
+    // ═══════════════════════════════════════════════════════════════════════
     //                              TYPES
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -38,6 +46,7 @@ contract ProductEscrow is ReentrancyGuard {
     // ═══════════════════════════════════════════════════════════════════════
 
     IWQI public immutable wqi;
+    address public arbitrator;
 
     mapping(bytes32 => Order) public orders;
     uint256 public orderCount;
@@ -73,6 +82,15 @@ contract ProductEscrow is ReentrancyGuard {
 
     event TimeoutClaimed(bytes32 indexed orderId, address indexed seller, uint256 amount);
 
+    event DisputeResolved(
+        bytes32 indexed orderId,
+        address indexed arbitrator,
+        uint256 buyerAmount,
+        uint256 sellerAmount
+    );
+
+    event ArbitratorTransferred(address indexed oldArbitrator, address indexed newArbitrator);
+
     // ═══════════════════════════════════════════════════════════════════════
     //                              ERRORS
     // ═══════════════════════════════════════════════════════════════════════
@@ -85,14 +103,19 @@ contract ProductEscrow is ReentrancyGuard {
     error OnlyBuyer();
     error OnlyBuyerOrSeller();
     error DeadlineNotExpired();
+    error OnlyArbitrator();
+    error OrderNotDisputed();
+    error InvalidSplit();
 
     // ═══════════════════════════════════════════════════════════════════════
     //                            CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
 
     /// @param _wqi Address of the deployed Wrapped Qi (WQI) ERC-20 contract on Quai Network.
-    constructor(address _wqi) {
+    /// @param _arbitrator Address of the dispute arbitrator.
+    constructor(address _wqi, address _arbitrator) {
         wqi = IWQI(_wqi);
+        arbitrator = _arbitrator;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -208,6 +231,45 @@ contract ProductEscrow is ReentrancyGuard {
         if (order.status != OrderStatus.Created) revert OrderNotInStatus(OrderStatus.Created);
 
         order.status = OrderStatus.Refunded;
+    }
+
+    /// @notice Resolve a dispute by splitting escrowed funds between buyer and seller.
+    /// @param _orderId The disputed order.
+    /// @param _buyerPercent Percentage of escrowed funds to refund to the buyer (0-100).
+    /// @dev The seller receives (100 - _buyerPercent)% of the escrowed funds.
+    function resolveDispute(bytes32 _orderId, uint8 _buyerPercent) external nonReentrant onlyArbitrator {
+        Order storage order = orders[_orderId];
+        if (order.seller == address(0)) revert OrderNotFound();
+        if (order.status != OrderStatus.Disputed) revert OrderNotDisputed();
+        if (_buyerPercent > 100) revert InvalidSplit();
+
+        uint256 total = order.price;
+        uint256 buyerAmount = (total * _buyerPercent) / 100;
+        uint256 sellerAmount = total - buyerAmount;
+
+        order.status = OrderStatus.Completed;
+
+        // Unwrap WQI → Qi and distribute
+        wqi.withdraw(total);
+
+        if (buyerAmount > 0) {
+            (bool s1,) = payable(order.buyer).call{value: buyerAmount}("");
+            require(s1, "Buyer transfer failed");
+        }
+        if (sellerAmount > 0) {
+            (bool s2,) = payable(order.seller).call{value: sellerAmount}("");
+            require(s2, "Seller transfer failed");
+        }
+
+        emit DisputeResolved(_orderId, msg.sender, buyerAmount, sellerAmount);
+    }
+
+    /// @notice Transfer the arbitrator role to a new address.
+    /// @param _newArbitrator The new arbitrator address.
+    function transferArbitrator(address _newArbitrator) external onlyArbitrator {
+        address old = arbitrator;
+        arbitrator = _newArbitrator;
+        emit ArbitratorTransferred(old, _newArbitrator);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

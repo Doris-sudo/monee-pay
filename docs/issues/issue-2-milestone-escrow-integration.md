@@ -7,7 +7,7 @@
 Connect frontend task reward components and discovery marketplace to the `MilestoneEscrow.sol` smart contract on Quai Network.
 
 ## Contract Reference
-- **MilestoneEscrow Address**: `0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA`
+- **MilestoneEscrow Address**: `0x0033bAa02477389a442580B63987214AB4097767`
 - **WQI Token Address**: `0x00354572C988dB5ca96827B091a59dAea71Bfbc6`
 
 ## Deliverables
