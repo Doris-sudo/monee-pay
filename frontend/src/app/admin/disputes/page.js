@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
@@ -14,24 +14,28 @@ const MOCK_DISPUTED_ESCROWS = [
   {
     id: "ord-dispute-001",
     escrowType: "product",
-    title: "MacBook Pro 16 M4 Max - Damaged Delivery Dispute",
+    title: "MacBook Pro 16 M4 Max — Damaged Delivery Dispute",
     totalQi: 2400,
     buyer: "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47",
     seller: "0x00354572C988dB5ca96827B091a59dAea71Bfbc6",
-    reason: "Buyer claims item arrived with cracked screen. Seller claims item was damaged by carrier.",
+    reason: "Buyer claims package arrived with a cracked display. Seller states item left in pristine condition with carrier insurance.",
     createdAt: "Aug 15, 2026",
     status: "disputed",
+    orderId: "a3kd82",
+    contractAddress: "0x0067f487e59f0C45922854F32B6d8deD8e820776",
   },
   {
     id: "task-dispute-002",
     escrowType: "milestone",
-    title: "Audit MoneePay Smart Contract - Scope Incomplete",
+    title: "Audit MoneePay Smart Contract — Scope & Test Cases",
     totalQi: 1200,
     creator: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
     solver: "0x001C2F6C68d3F493FF2b9c017e334DD7685f5daB",
-    reason: "Creator claims solver missed 2 critical vulnerability test cases. Solver claims scope was met.",
+    reason: "Creator claims solver missed 2 critical vulnerability edge-cases. Solver claims deliverables satisfied all written specs.",
     createdAt: "Aug 18, 2026",
     status: "disputed",
+    orderId: "k2m9x4",
+    contractAddress: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
   },
 ];
 
@@ -43,13 +47,24 @@ export default function DisputesAdminPage() {
   const [disputes, setDisputes] = useState(MOCK_DISPUTED_ESCROWS);
   const [selectedDispute, setSelectedDispute] = useState(null);
   const [splitPercent, setSplitPercent] = useState(50); // 50% split by default
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [newArbitratorAddr, setNewArbitratorAddr] = useState("");
   const [roleTransferMsg, setRoleTransferMsg] = useState("");
 
-  // Check if connected wallet is designated arbitrator
-  const isArbitrator =
-    isConnected &&
-    (account?.toLowerCase() === CONTRACT_ADDRESSES.Arbitrator.toLowerCase() || true); // Enabled for demo simulation
+  // Calculate Metrics
+  const totalFrozenQi = useMemo(() => disputes.reduce((sum, d) => sum + d.totalQi, 0), [disputes]);
+
+  const filteredDisputes = useMemo(() => {
+    return disputes.filter((d) => {
+      const matchesTab = activeTab === "all" || d.escrowType === activeTab;
+      const matchesQuery =
+        d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        d.reason.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesTab && matchesQuery;
+    });
+  }, [disputes, activeTab, searchQuery]);
 
   const handleOpenResolveModal = (dispute) => {
     setSelectedDispute(dispute);
@@ -113,134 +128,190 @@ export default function DisputesAdminPage() {
       <main className={styles.mainArea}>
         {/* Header */}
         <div className={styles.headerSection}>
-          <div>
-            <span className={styles.badgeLabel}>⚖️ Quai Network Arbitration Dashboard</span>
+          <div className={styles.titleGroup}>
+            <span className={styles.badgeLabel}>
+              <span>⚖️</span> Quai Network Arbitration Command Center
+            </span>
             <h1 className={styles.title}>
-              Dispute Resolution & <span className="gradient-text">Arbitration Interface</span>
+              Dispute Resolution & <span className="gradient-text">Arbitration Portal</span>
             </h1>
             <p className={styles.subtitle}>
-              Unfreeze disputed smart contract escrows on Quai Cyprus-1. Arbitrators execute <code>resolveDispute()</code> to disburse custom percentage split settlements between buyers and sellers.
+              Unfreeze and arbitrate disputed smart contract escrows on Quai Cyprus-1. Execute trustless percentage split settlements between counter-parties via <code>resolveDispute()</code>.
             </p>
           </div>
         </div>
 
-        {/* Access Validation Banner */}
+        {/* Metrics Grid */}
+        <div className={styles.metricsGrid}>
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Total Frozen Escrow Volume</span>
+            <div className={`${styles.metricVal} ${styles.metricValTeal}`}>{totalFrozenQi.toLocaleString()} Qi</div>
+            <span className={styles.metricSub}>Locked in WQI smart contracts</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Active Disputed Escrows</span>
+            <div className={styles.metricVal}>{disputes.length} Disputes</div>
+            <span className={styles.metricSub}>Awaiting arbitrator decision</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Average Resolution Time</span>
+            <div className={styles.metricVal} style={{ color: "#00B4D8" }}>&lt; 4.2 Hours</div>
+            <span className={styles.metricSub}>Trustless protocol SLA</span>
+          </div>
+
+          <div className={styles.metricCard}>
+            <span className={styles.metricLabel}>Designated Arbitrator</span>
+            <div className={styles.metricVal} style={{ fontSize: "1.1rem", fontFamily: "monospace" }}>
+              {CONTRACT_ADDRESSES.Arbitrator.slice(0, 8)}...{CONTRACT_ADDRESSES.Arbitrator.slice(-6)}
+            </div>
+            <span className={styles.metricSub}>Active Multisig / Role</span>
+          </div>
+        </div>
+
+        {/* Access Check */}
         {!isConnected ? (
-          <div className={styles.card} style={{ textAlign: "center", padding: "40px 20px" }}>
-            <h3 style={{ margin: "0 0 8px 0" }}>Connect Arbitrator Wallet</h3>
-            <p style={{ color: "#94A3B8", fontSize: "0.9rem", marginBottom: "20px" }}>
-              Please connect your designated arbitrator wallet to resolve active escrow disputes.
+          <div className={styles.govCard} style={{ textAlign: "center", padding: "48px 24px" }}>
+            <h3 style={{ fontSize: "1.5rem", marginBottom: "10px" }}>Connect Arbitrator Wallet</h3>
+            <p style={{ color: "#94A3B8", fontSize: "0.95rem", maxWidth: "480px", margin: "0 auto 24px auto" }}>
+              Connect your authorized Quai wallet to review active disputes, inspect on-chain evidence, and broadcast split settlements.
             </p>
-            <button className="btn btn-primary" onClick={connectWallet}>
-              Connect Wallet
+            <button className="btn btn-primary" onClick={connectWallet} style={{ padding: "12px 28px" }}>
+              Connect Arbitrator Wallet
             </button>
           </div>
         ) : (
           <>
-            {/* Arbitrator Info Bar */}
-            <div style={{
-              background: "rgba(0, 212, 170, 0.06)",
-              border: "1px solid rgba(0, 212, 170, 0.25)",
-              borderRadius: "12px",
-              padding: "16px 20px",
-              marginBottom: "24px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "12px"
-            }}>
-              <div>
-                <span style={{ fontSize: "0.8rem", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-                  ⚖️ Current Designated Arbitrator (#30)
-                </span>
-                <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#00D4AA", fontFamily: "monospace", marginTop: "2px" }}>
-                  {CONTRACT_ADDRESSES.Arbitrator}
+            {/* Filter Bar */}
+            <div className={styles.filterBar}>
+              <div className={styles.tabGroup}>
+                <button
+                  className={`${styles.tabBtn} ${activeTab === "all" ? styles.tabBtnActive : ""}`}
+                  onClick={() => setActiveTab("all")}
+                >
+                  All Disputes ({disputes.length})
+                </button>
+                <button
+                  className={`${styles.tabBtn} ${activeTab === "product" ? styles.tabBtnActive : ""}`}
+                  onClick={() => setActiveTab("product")}
+                >
+                  Product Commerce
+                </button>
+                <button
+                  className={`${styles.tabBtn} ${activeTab === "milestone" ? styles.tabBtnActive : ""}`}
+                  onClick={() => setActiveTab("milestone")}
+                >
+                  Milestone Escrows
+                </button>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Search dispute title or reason..."
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Disputes Grid */}
+            <div className={styles.disputeGrid}>
+              {filteredDisputes.map((item) => (
+                <div key={item.id} className={styles.disputeCard}>
+                  <div className={styles.cardTop}>
+                    <span className={`${styles.typeBadge} ${item.escrowType === "product" ? styles.typeProduct : styles.typeMilestone}`}>
+                      {item.escrowType === "product" ? "🛍️ Product Escrow" : "🎯 Milestone Escrow"}
+                    </span>
+                    <span className={styles.disputedBadge}>
+                      <span className={styles.pulseDot} />
+                      Escrow Frozen
+                    </span>
+                  </div>
+
+                  <h3 className={styles.disputeTitle}>{item.title}</h3>
+
+                  <div className={styles.reasonBox}>
+                    <div style={{ fontSize: "0.75rem", color: "#F87171", fontWeight: "700", textTransform: "uppercase" }}>
+                      ⚠️ Disputed Reason & Claim
+                    </div>
+                    <div className={styles.reasonText}>&quot;{item.reason}&quot;</div>
+                  </div>
+
+                  <div className={styles.partiesRow}>
+                    <div>
+                      <div className={styles.partyLabel}>{item.escrowType === "product" ? "Buyer" : "Creator"}</div>
+                      <div className={styles.partyAddr}>{item.buyer ? `${item.buyer.slice(0, 6)}...` : `${item.creator.slice(0, 6)}...`}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div className={styles.partyLabel}>{item.escrowType === "product" ? "Seller" : "Solver"}</div>
+                      <div className={styles.partyAddr}>{item.seller ? `${item.seller.slice(0, 6)}...` : `${item.solver.slice(0, 6)}...`}</div>
+                    </div>
+                  </div>
+
+                  <div className={styles.metaGrid}>
+                    <div>
+                      <div className={styles.partyLabel}>Locked Amount</div>
+                      <div className={styles.lockVal}>{item.totalQi.toLocaleString()} Qi</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div className={styles.partyLabel}>Initiated On</div>
+                      <div style={{ fontSize: "0.88rem", color: "#94A3B8" }}>{item.createdAt}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "16px" }}>
+                    <ExplorerLink hash={item.contractAddress} label="Quaiscan Smart Contract Evidence" />
+                  </div>
+
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: "0.95rem" }}
+                    onClick={() => handleOpenResolveModal(item)}
+                  >
+                    Arbitrate & Settle Split ({item.totalQi.toLocaleString()} Qi)
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {filteredDisputes.length === 0 && (
+              <div className={styles.govCard} style={{ textAlign: "center", padding: "40px" }}>
+                <h3>🎉 Zero Pending Disputes</h3>
+                <p style={{ color: "#94A3B8" }}>All smart contract escrows have been settled or resolved.</p>
+              </div>
+            )}
+
+            {/* Arbitrator Governance Panel */}
+            <div className={styles.govCard}>
+              <div className={styles.govHeader}>
+                <div className={styles.govIcon}>👑</div>
+                <div>
+                  <h3 className={styles.govTitle}>Arbitrator Governance & Multisig Transfer</h3>
+                  <div style={{ fontSize: "0.85rem", color: "#00D4AA" }}>Active Arbitrator: {CONTRACT_ADDRESSES.Arbitrator}</div>
                 </div>
               </div>
 
-              <div className={styles.badgeCount}>
-                <span>🟢 Arbitrator Active</span>
-              </div>
-            </div>
-
-            {/* Active Disputes Section */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h3 style={{ margin: 0 }}>Active Disputed Escrows</h3>
-                <span className={styles.badgeCount}>{disputes.length} Disputes Pending</span>
-              </div>
-
-              <div className={styles.grid}>
-                {disputes.map((item) => (
-                  <div key={item.id} className={styles.disputeItem}>
-                    <div className={styles.disputeHeader}>
-                      <span className={styles.typeTag}>
-                        {item.escrowType === "product" ? "🛍️ Product Escrow" : "🎯 Milestone Escrow"}
-                      </span>
-                      <span className={styles.disputedBadge}>⚠️ Frozen</span>
-                    </div>
-
-                    <h4 className={styles.disputeTitle}>{item.title}</h4>
-                    <p className={styles.disputeReason}>&quot;{item.reason}&quot;</p>
-
-                    <div className={styles.metaRow}>
-                      <div>
-                        <span className={styles.metaLabel}>Escrow Lock</span>
-                        <div className={styles.metaVal}>{item.totalQi.toLocaleString()} Qi</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span className={styles.metaLabel}>Initiated</span>
-                        <div className={styles.metaTime}>{item.createdAt}</div>
-                      </div>
-                    </div>
-
-                    <div style={{ margin: "10px 0" }}>
-                      <ExplorerLink hash={CONTRACT_ADDRESSES.ProductEscrow} label="Inspect Contract On-Chain" />
-                    </div>
-
-                    <button
-                      className="btn btn-primary btn-sm"
-                      style={{ width: "100%", justifyContent: "center", marginTop: "8px" }}
-                      onClick={() => handleOpenResolveModal(item)}
-                    >
-                      Resolve Dispute & Disburse Split
-                    </button>
-                  </div>
-                ))}
-
-                {disputes.length === 0 && (
-                  <div style={{ textAlign: "center", padding: "40px", color: "#94A3B8" }}>
-                    🎉 No active disputes pending arbitration. All escrows settled cleanly!
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Role Transfer Section */}
-            <div className={styles.card} style={{ marginTop: "24px" }}>
-              <h3>👑 Transfer Arbitrator Role</h3>
-              <p style={{ color: "#94A3B8", fontSize: "0.88rem", marginBottom: "16px" }}>
-                Assign a new arbitrator wallet or DAO multisig address to manage dispute resolutions across MoneePay smart contracts.
+              <p className={styles.govSub}>
+                Reassign the arbitrator role across MoneePay smart contracts to a new security council wallet or DAO multisig contract.
               </p>
 
-              <form onSubmit={handleRoleTransfer} style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <form onSubmit={handleRoleTransfer} className={styles.transferForm}>
                 <input
                   type="text"
-                  placeholder="0x... New Arbitrator Wallet Address"
+                  placeholder="0x... New Arbitrator Wallet or Multisig Address"
                   value={newArbitratorAddr}
                   onChange={(e) => setNewArbitratorAddr(e.target.value)}
-                  className={styles.numInput}
-                  style={{ flex: 1, minWidth: "260px" }}
+                  className={styles.transferInput}
                   required
                 />
                 <button type="submit" className="btn btn-outlined" disabled={loading}>
-                  Transfer Arbitrator Role
+                  Transfer Role
                 </button>
               </form>
 
               {roleTransferMsg && (
-                <p style={{ marginTop: "12px", fontSize: "0.85rem", color: "#00D4AA" }}>{roleTransferMsg}</p>
+                <div style={{ marginTop: "14px", fontSize: "0.88rem", color: "#00D4AA" }}>{roleTransferMsg}</div>
               )}
             </div>
           </>
@@ -257,14 +328,59 @@ export default function DisputesAdminPage() {
 
             <h3 className={styles.modalTitle}>⚖️ Dispute Split Settlement</h3>
             <p className={styles.modalSub}>
-              Adjust the percentage split slider below to determine exact Qi disbursement for <strong>{selectedDispute.title}</strong>.
+              Set the settlement percentage ratio for <strong>{selectedDispute.title}</strong>. Funds will unfreeze and transfer on-chain immediately upon execution.
             </p>
 
+            {/* Quick Presets */}
+            <div className={styles.presetRow}>
+              <button
+                type="button"
+                className={`${styles.presetBtn} ${splitPercent === 100 ? styles.presetBtnActive : ""}`}
+                onClick={() => setSplitPercent(100)}
+              >
+                100% {selectedDispute.escrowType === "product" ? "Buyer" : "Creator"}
+              </button>
+              <button
+                type="button"
+                className={`${styles.presetBtn} ${splitPercent === 75 ? styles.presetBtnActive : ""}`}
+                onClick={() => setSplitPercent(75)}
+              >
+                75% / 25%
+              </button>
+              <button
+                type="button"
+                className={`${styles.presetBtn} ${splitPercent === 50 ? styles.presetBtnActive : ""}`}
+                onClick={() => setSplitPercent(50)}
+              >
+                50% / 50% Split
+              </button>
+              <button
+                type="button"
+                className={`${styles.presetBtn} ${splitPercent === 25 ? styles.presetBtnActive : ""}`}
+                onClick={() => setSplitPercent(25)}
+              >
+                25% / 75%
+              </button>
+              <button
+                type="button"
+                className={`${styles.presetBtn} ${splitPercent === 0 ? styles.presetBtnActive : ""}`}
+                onClick={() => setSplitPercent(0)}
+              >
+                100% {selectedDispute.escrowType === "product" ? "Seller" : "Solver"}
+              </button>
+            </div>
+
+            {/* Visual Track Bar */}
+            <div className={styles.trackBar}>
+              <div className={styles.fillA} style={{ width: `${splitPercent}%` }} />
+              <div className={styles.fillB} style={{ width: `${100 - splitPercent}%` }} />
+            </div>
+
             {/* Slider */}
-            <div className={styles.sliderBox}>
+            <div className={styles.sliderContainer}>
               <div className={styles.sliderHeader}>
-                <span>{labelA}: <strong>{splitPercent}%</strong></span>
-                <span>{labelB}: <strong>{100 - splitPercent}%</strong></span>
+                <span style={{ color: "#60A5FA" }}>{labelA}: {splitPercent}%</span>
+                <span style={{ color: "#00D4AA" }}>{labelB}: {100 - splitPercent}%</span>
               </div>
               <input
                 type="range"
@@ -277,7 +393,7 @@ export default function DisputesAdminPage() {
               />
             </div>
 
-            {/* Live Calculation Preview */}
+            {/* Live Calculation Preview Cards */}
             <div className={styles.calcGrid}>
               <div className={styles.calcCard}>
                 <span className={styles.calcLabel}>{labelA}</span>
@@ -294,11 +410,11 @@ export default function DisputesAdminPage() {
 
             <button
               className="btn btn-primary"
-              style={{ width: "100%", padding: "14px", fontSize: "1rem" }}
+              style={{ width: "100%", padding: "16px", fontSize: "1rem" }}
               onClick={handleExecuteResolve}
               disabled={loading}
             >
-              {loading ? "Signing & Executing Settlement..." : `Execute Split Settlement (${selectedDispute.totalQi.toLocaleString()} Qi)`}
+              {loading ? "Signing & Executing Settlement..." : `Broadcast Split Settlement (${selectedDispute.totalQi.toLocaleString()} Qi)`}
             </button>
           </div>
         </div>
