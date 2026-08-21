@@ -751,8 +751,8 @@
 
 /* Milestone Tranche Section */
 .trancheSection {
-  background: rgba(15, 23, 42, 0.5);
-  border: var(--border-glass);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
@@ -771,6 +771,7 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
+  margin-bottom: 2px;
 }
 
 .trancheSub {
@@ -801,13 +802,17 @@
 .trancheList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .trancheRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
 }
 
 .trancheIndex {
@@ -815,6 +820,7 @@
   font-weight: 800;
   color: var(--accent-cyan);
   background: rgba(0, 180, 216, 0.12);
+  border: 1px solid rgba(0, 180, 216, 0.25);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
@@ -823,31 +829,43 @@
 .trancheTitleInput {
   flex: 1;
   padding: 10px 14px;
-  background: rgba(5, 10, 20, 0.6);
-  border: var(--border-glass);
+  background: rgba(10, 14, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 0.88rem;
+  font-family: var(--font-sans);
   outline: none;
+  transition: border var(--transition-fast);
+}
+
+.trancheTitleInput:focus {
+  border-color: rgba(0, 180, 216, 0.5);
 }
 
 .percentInputWrapper {
   position: relative;
-  width: 90px;
+  width: 95px;
   flex-shrink: 0;
 }
 
 .tranchePercentInput {
   width: 100%;
-  padding: 10px 24px 10px 12px;
-  background: rgba(5, 10, 20, 0.6);
-  border: var(--border-glass);
+  padding: 10px 24px 10px 10px;
+  background: rgba(10, 14, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
+  color: var(--accent-cyan);
   font-size: 0.88rem;
   font-weight: 700;
   text-align: right;
   outline: none;
+  font-family: var(--font-sans);
+  transition: border var(--transition-fast);
+}
+
+.tranchePercentInput:focus {
+  border-color: rgba(0, 180, 216, 0.5);
 }
 
 .percentSymbol {
@@ -856,24 +874,30 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 0.78rem;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: var(--accent-cyan);
+  pointer-events: none;
 }
 
 .trancheCalcAmount {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #A78BFA;
-  min-width: 75px;
-  text-align: right;
+  color: #00D4AA;
+  background: rgba(0, 212, 170, 0.1);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  min-width: 85px;
+  text-align: center;
   flex-shrink: 0;
 }
 
 .removeTrancheBtn {
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   color: #EF4444;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -881,28 +905,31 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   flex-shrink: 0;
+  font-size: 0.9rem;
 }
 
 .removeTrancheBtn:hover {
   background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
 }
 
 .addTrancheBtn {
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  padding: 10px 16px;
+  background: rgba(0, 212, 170, 0.08);
+  border: 1px dashed rgba(0, 212, 170, 0.35);
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  font-weight: 600;
+  color: var(--accent-teal);
+  font-size: 0.84rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
   width: fit-content;
+  font-family: var(--font-sans);
 }
 
 .addTrancheBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
+  background: rgba(0, 212, 170, 0.18);
+  border-color: var(--accent-teal);
 }
 
 /* Contract Notice */
