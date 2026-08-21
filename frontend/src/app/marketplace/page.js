@@ -3,9 +3,13 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
+import Footer from "@/components/Footer";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import ExplorerLink from "@/components/ExplorerLink";
 import { useProductEscrow } from "@/hooks/useProductEscrow";
+import { useWallet } from "@/hooks/useWallet";
+import { useEscrowContracts, CONTRACT_ADDRESSES } from "@/hooks/useEscrowContracts";
+import { useToast } from "@/context/ToastContext";
 import styles from "./Marketplace.module.css";
 
 const MOCK_PRODUCTS = [
@@ -20,6 +24,7 @@ const MOCK_PRODUCTS = [
     deadline: "3 Days",
     status: "live",
     orderId: "a3kd82",
+    txHash: "0x0067f487e59f0C45922854F32B6d8deD8e820776",
   },
   {
     id: "mp-002",
@@ -32,6 +37,7 @@ const MOCK_PRODUCTS = [
     deadline: "5 Days",
     status: "live",
     orderId: "f7j2k9",
+    txHash: "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47",
   },
   {
     id: "mp-003",
@@ -44,33 +50,61 @@ const MOCK_PRODUCTS = [
     deadline: "7 Days",
     status: "live",
     orderId: "k2m9x4",
+    txHash: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
   },
 ];
 
 export default function MarketplacePage() {
   const { orders: onChainOrders, loading: onChainLoading } = useProductEscrow();
+  const { account, isConnected, connectWallet } = useWallet();
+  const { createOrder, depositProductEscrow, loading: contractLoading } = useEscrowContracts();
+  const { addToast } = useToast();
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
 
-  // Merge live on-chain ProductEscrow orders with catalog listings (#28)
+  // Local state for custom created listings
+  const [customListings, setCustomListings] = useState([]);
+
+  // Create Product Listing Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [formTitle, setFormTitle] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [formPriceQi, setFormPriceQi] = useState("1000");
+  const [formCategory, setFormCategory] = useState("Electronics");
+  const [formEmoji, setFormEmoji] = useState("🛍️");
+  const [formDeadlineDays, setFormDeadlineDays] = useState("3");
+
+  // Buy Product Modal State
+  const [selectedBuyProduct, setSelectedBuyProduct] = useState(null);
+
+  // Merge live on-chain ProductEscrow orders, custom listings, and catalog items
   const allListings = useMemo(() => {
     const liveItems = onChainOrders.map((ord, idx) => ({
       id: ord.id || `live-${idx}`,
-      title: ord.title,
+      title: ord.title || "On-Chain Product Listing",
       description: "On-chain ProductEscrow listing on Quai Cyprus-1. Funds protected until buyer confirms delivery.",
-      price: ord.priceQi,
+      price: ord.priceQi || 1000,
       category: "Digital Assets",
       emoji: "🛍️",
-      seller: { address: ord.seller, initial: "Q" },
+      seller: { address: ord.seller ? `${ord.seller.slice(0, 6)}...${ord.seller.slice(-4)}` : "0x001c...3f47", initial: "Q" },
       deadline: "3 Days",
       status: "live",
-      orderId: ord.id.slice(0, 8),
-      txHash: "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47",
+      orderId: ord.id ? ord.id.slice(0, 8) : "a3kd82",
+      txHash: CONTRACT_ADDRESSES.ProductEscrow,
     }));
-    return [...liveItems, ...MOCK_PRODUCTS];
-  }, [onChainOrders]);
+    return [...customListings, ...liveItems, ...MOCK_PRODUCTS];
+  }, [onChainOrders, customListings]);
+
+  // Aggregate Stats
+  const totalMarketVolume = useMemo(() => {
+    return allListings.reduce((acc, p) => acc + (p.price || 0), 0);
+  }, [allListings]);
+
+  const avgProductPrice = useMemo(() => {
+    return allListings.length > 0 ? Math.round(totalMarketVolume / allListings.length) : 0;
+  }, [allListings, totalMarketVolume]);
 
   const categories = ["All", "Electronics", "Digital Assets", "Services"];
 
@@ -90,14 +124,101 @@ export default function MarketplacePage() {
       });
   }, [allListings, activeCategory, searchQuery, sortBy]);
 
+  // Submit Create Product Listing Form
+  const handleCreateProductSubmit = async (e) => {
+    e.preventDefault();
+    if (!formTitle.trim()) {
+      addToast({ message: "⚠️ Please enter a product title.", type: "error" });
+      return;
+    }
+    const priceNum = parseFloat(formPriceQi);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      addToast({ message: "⚠️ Please enter a valid listing price in Qi.", type: "error" });
+      return;
+    }
+
+    if (!isConnected) {
+      addToast({ message: "✍️ Please connect your wallet to create a listing on-chain.", type: "prompt" });
+      connectWallet();
+      return;
+    }
+
+    try {
+      addToast({ message: "✍️ Awaiting wallet signature to create product listing...", type: "prompt" });
+
+      const hash = await createOrder({
+        title: formTitle,
+        description: formDesc,
+        priceQi: priceNum,
+        deadlineDays: Number(formDeadlineDays),
+      });
+
+      addToast({
+        message: "✓ Product Listing created on Quai Cyprus-1!",
+        type: "success",
+        txHash: hash,
+      });
+
+      const newListing = {
+        id: `custom-prod-${Date.now()}`,
+        title: formTitle,
+        description: formDesc || "Protected P2P product listing on Quai Network.",
+        price: priceNum,
+        category: formCategory,
+        emoji: formEmoji,
+        seller: { address: `${account.slice(0, 6)}...${account.slice(-4)}`, initial: "YOU" },
+        deadline: `${formDeadlineDays} Days`,
+        status: "live",
+        orderId: hash.slice(0, 8),
+        txHash: CONTRACT_ADDRESSES.ProductEscrow,
+      };
+
+      setCustomListings((prev) => [newListing, ...prev]);
+      setIsCreateModalOpen(false);
+      setFormTitle("");
+      setFormDesc("");
+      setFormPriceQi("1000");
+    } catch (err) {
+      addToast({ message: `⚠️ Listing Creation Failed: ${err.message}`, type: "error" });
+    }
+  };
+
+  // Deposit Escrow Payout Handler
+  const handleDepositEscrowSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedBuyProduct) return;
+
+    if (!isConnected) {
+      addToast({ message: "✍️ Please connect your wallet to deposit escrow funds.", type: "prompt" });
+      connectWallet();
+      return;
+    }
+
+    try {
+      addToast({ message: "✍️ Awaiting wallet signature to deposit Qi into ProductEscrow...", type: "prompt" });
+
+      const hash = await depositProductEscrow(selectedBuyProduct.orderId, selectedBuyProduct.price);
+
+      addToast({
+        message: `✓ ${selectedBuyProduct.price.toLocaleString()} Qi locked in ProductEscrow on Quai Cyprus-1!`,
+        type: "success",
+        txHash: hash,
+      });
+
+      setSelectedBuyProduct(null);
+    } catch (err) {
+      addToast({ message: `⚠️ Escrow Deposit Failed: ${err.message}`, type: "error" });
+    }
+  };
+
   return (
     <div className={styles.layoutContainer}>
       <Sidebar mode="individual" />
 
       <main className={styles.mainArea}>
-        {/* Header */}
+        {/* Header Hero Section */}
         <div className={styles.headerSection}>
-          <div>
+          <div className={styles.headerLeft}>
             <span className={styles.badgeLabel}>⚡ Quai Network Protected Commerce</span>
             <h1 className={styles.title}>
               P2P Product <span className="gradient-text">Escrow Marketplace</span>
@@ -107,103 +228,382 @@ export default function MarketplacePage() {
             </p>
           </div>
 
-          <Link href="/order/create" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>
+          <button
+            className="btn btn-primary"
+            style={{ whiteSpace: "nowrap" }}
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             + Create Product Listing
-          </Link>
+          </button>
         </div>
 
-        {/* Filter Bar */}
-        <div className={styles.filterBar}>
-          <div className={styles.categoryGroup}>
+        {/* Stats Banner */}
+        <div className={styles.statsBanner}>
+          <div className={styles.statItem}>
+            <div className={styles.statValue}>{totalMarketVolume.toLocaleString()} Qi</div>
+            <div className={styles.statLabel}>Total Marketplace Volume</div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statValue}>{allListings.length} Listings</div>
+            <div className={styles.statLabel}>Active Protected Products</div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statValue}>{avgProductPrice.toLocaleString()} Qi</div>
+            <div className={styles.statLabel}>Average Item Price</div>
+          </div>
+          <div className={styles.statItem}>
+            <div className={styles.statValue}>100% Protected</div>
+            <div className={styles.statLabel}>Delivery Escrow SLA</div>
+          </div>
+        </div>
+
+        {/* Search & Category Filter Bar */}
+        <div className={styles.searchFilterBar}>
+          <div className={styles.searchInputWrapper}>
+            <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search products, electronics, or services..."
+              className={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.filterTabs}>
             {categories.map((cat) => (
               <button
                 key={cat}
-                className={`${styles.catBtn} ${activeCategory === cat ? styles.catBtnActive : ""}`}
+                className={`${styles.filterTab} ${activeCategory === cat ? styles.filterTabActive : ""}`}
                 onClick={() => setActiveCategory(cat)}
               >
                 {cat}
               </button>
             ))}
           </div>
-
-          <div className={styles.searchSortGroup}>
-            <input
-              type="text"
-              placeholder="Search listings..."
-              className={styles.searchInput}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-
-            <select
-              className={styles.sortSelect}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="newest">Newest First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
-          </div>
         </div>
 
-        {/* Loading Skeleton (#28) */}
+        {/* Results Info Bar */}
+        <div className={styles.resultsInfo}>
+          <span className={styles.resultCount}>
+            Showing <strong>{filteredProducts.length}</strong> of {allListings.length} product listings
+          </span>
+
+          <select
+            className={styles.sortSelect}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="newest">Newest First</option>
+            <option value="price-low">Price: Low to High</option>
+            <option value="price-high">Price: High to Low</option>
+          </select>
+        </div>
+
+        {/* Indexing Indicator (#28) */}
         {onChainLoading && (
-          <div style={{ color: "#00D4AA", fontSize: "0.9rem", padding: "10px 0" }}>
-            ⏳ Indexing live ProductEscrow smart contract events on Quai Cyprus-1...
+          <div className={styles.loadingBox}>
+            <span className={styles.loadingSpinner}>⏳</span>
+            <span>Indexing live ProductEscrow smart contract events on Quai Cyprus-1...</span>
           </div>
         )}
 
-        {/* Grid */}
-        <div className={styles.grid}>
+        {/* Products Grid */}
+        <div className={styles.productsGrid}>
           {filteredProducts.map((p) => (
-            <div key={p.id} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <span className={styles.cardEmoji}>{p.emoji}</span>
+            <div key={p.id} className={styles.productCard}>
+              <div className={styles.cardImageArea}>
+                <span className={styles.productEmoji}>{p.emoji}</span>
                 <span className={styles.categoryBadge}>{p.category}</span>
-              </div>
-
-              <h3 className={styles.cardTitle}>{p.title}</h3>
-              <p className={styles.cardDesc}>{p.description}</p>
-
-              <div className={styles.cardMeta}>
-                <div>
-                  <span className={styles.priceLabel}>Escrow Lock Price</span>
-                  <div className={styles.priceVal}>{p.price.toLocaleString()} Qi</div>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <span className={styles.priceLabel}>Seller</span>
-                  <div className={styles.sellerAddr}>{p.seller.address}</div>
+                <div className={styles.escrowBadge}>
+                  <span className={styles.escrowDot} /> Escrow Protected
                 </div>
               </div>
 
-              {p.txHash && (
-                <div style={{ margin: "10px 0 6px 0" }}>
-                  <ExplorerLink hash={p.txHash} label="Quaiscan Contract Receipt" />
-                </div>
-              )}
+              <div className={styles.cardBody}>
+                <h3 className={styles.productTitle}>{p.title}</h3>
+                <p className={styles.productDesc}>{p.description}</p>
 
-              <div className={styles.cardFooter}>
-                <Link href={`/order/${p.orderId}`} className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }}>
-                  Buy with Escrow ({p.price.toLocaleString()} Qi)
-                </Link>
-                <FarcasterShareButton
-                  text={`Check out this protected product listing: ${p.title} (${p.price} Qi) on Quai Network! 🛍️`}
-                  buttonText="Share"
-                />
+                <div className={styles.cardMeta}>
+                  <div className={styles.sellerInfo}>
+                    <span className={styles.sellerAvatar}>{p.seller.initial}</span>
+                    <span className={styles.sellerAddr}>{p.seller.address}</span>
+                  </div>
+                  <span className={styles.deadlineBadge}>⏱️ {p.deadline} Window</span>
+                </div>
+
+                {p.txHash && (
+                  <div style={{ margin: "10px 0 6px 0" }}>
+                    <ExplorerLink hash={p.txHash} label="Quaiscan Contract Receipt" />
+                  </div>
+                )}
+
+                <div className={styles.cardFooter}>
+                  <div className={styles.priceTag}>
+                    <span className={styles.priceAmount}>{p.price.toLocaleString()}</span>
+                    <span className={styles.priceCurrency}>Qi</span>
+                  </div>
+
+                  <div className={styles.ctaGroup}>
+                    <FarcasterShareButton
+                      text={`Check out this protected product listing: "${p.title}" (${p.price} Qi) on Quai Network! 🛍️`}
+                      buttonText="Share"
+                    />
+                    <button
+                      className={styles.buyBtn}
+                      onClick={() => setSelectedBuyProduct(p)}
+                    >
+                      Buy with Escrow ({p.price.toLocaleString()} Qi)
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Empty State */}
         {filteredProducts.length === 0 && (
           <div className={styles.emptyState}>
-            <h3>No listings found</h3>
-            <p>Try adjusting your category or search query.</p>
+            <div className={styles.emptyIcon}>🛍️</div>
+            <h3 className={styles.emptyTitle}>No product listings found</h3>
+            <p className={styles.emptyDesc}>Try adjusting your search query or switching categories.</p>
           </div>
         )}
       </main>
+
+      {/* POP-UP MODAL 1: CREATE PRODUCT LISTING */}
+      {isCreateModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsCreateModalOpen(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeBtn} onClick={() => setIsCreateModalOpen(false)}>
+              ✕
+            </button>
+
+            <div className={styles.modalHeader}>
+              <span className={styles.modalBadge}>🛍️ ProductEscrow.sol</span>
+              <h2 className={styles.modalTitle}>Create Product Listing</h2>
+              <p className={styles.modalSub}>
+                List a product or service with smart-contract escrow protection on Quai Network. Buyers deposit Qi which unlocks only after confirmed delivery.
+              </p>
+            </div>
+
+            <form onSubmit={handleCreateProductSubmit} className={styles.modalForm}>
+              {/* Title & Emoji Row */}
+              <div className={styles.formRow}>
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Product Title *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. MacBook Pro 16 M4 Max"
+                    className={styles.formInput}
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className={styles.inputGroup} style={{ width: "120px" }}>
+                  <label className={styles.label}>Item Icon</label>
+                  <select
+                    className={styles.formSelect}
+                    value={formEmoji}
+                    onChange={(e) => setFormEmoji(e.target.value)}
+                  >
+                    <option value="🛍️">🛍️ Product</option>
+                    <option value="💻">💻 Electronics</option>
+                    <option value="🎨">🎨 Digital Asset</option>
+                    <option value="🔒">🔒 Service</option>
+                    <option value="⚡">⚡ Tech Hardware</option>
+                    <option value="📦">📦 Physical Goods</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Item Specifications & Shipping Terms</label>
+                <textarea
+                  rows={3}
+                  placeholder="Detail condition, memory/storage specs, warranty, tracking details, and shipping terms..."
+                  className={styles.formTextarea}
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                />
+              </div>
+
+              {/* Category & Delivery Window */}
+              <div className={styles.formRow}>
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Product Category</label>
+                  <select
+                    className={styles.formSelect}
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                  >
+                    <option value="Electronics">Electronics & Hardware</option>
+                    <option value="Digital Assets">Digital Assets & NFTs</option>
+                    <option value="Services">Services & Security</option>
+                    <option value="General">General Merchandise</option>
+                  </select>
+                </div>
+
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Delivery Window (Days)</label>
+                  <select
+                    className={styles.formSelect}
+                    value={formDeadlineDays}
+                    onChange={(e) => setFormDeadlineDays(e.target.value)}
+                  >
+                    <option value="3">3 Days (Fast Ship)</option>
+                    <option value="5">5 Days (Standard)</option>
+                    <option value="7">7 Days (International)</option>
+                    <option value="14">14 Days (Custom/Service)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Escrow Price */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Escrow Lock Price (Qi) *</label>
+                <div className={styles.currencyInputWrapper}>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="1000"
+                    className={styles.formInput}
+                    value={formPriceQi}
+                    onChange={(e) => setFormPriceQi(e.target.value)}
+                    required
+                  />
+                  <span className={styles.currencySuffix}>Qi</span>
+                </div>
+                <span className={styles.inputHelp}>
+                  Buyer must deposit this exact Qi amount into ProductEscrow to purchase.
+                </span>
+              </div>
+
+              {/* Contract Verification Notice */}
+              <div className={styles.contractNotice}>
+                <div className={styles.noticeIcon}>🔒</div>
+                <div>
+                  <div className={styles.noticeTitle}>ProductEscrow.sol Verification</div>
+                  <div className={styles.noticeText}>
+                    Triggers <code>ProductEscrow.createOrder(title, description, priceWei, deadlineDays)</code> on Quai Cyprus-1.
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className="btn btn-outlined"
+                  onClick={() => setIsCreateModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={contractLoading}
+                  style={{ minWidth: "220px", justifyContent: "center" }}
+                >
+                  {contractLoading ? "✍️ Creating Listing..." : `Publish Product Listing (${formPriceQi} Qi)`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POP-UP MODAL 2: BUY PRODUCT & DEPOSIT ESCROW */}
+      {selectedBuyProduct && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedBuyProduct(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeBtn} onClick={() => setSelectedBuyProduct(null)}>
+              ✕
+            </button>
+
+            <div className={styles.modalHeader}>
+              <div className={styles.cardBadges} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <span className={styles.categoryBadge} style={{ position: "static" }}>{selectedBuyProduct.category}</span>
+                <span className={styles.escrowBadge} style={{ position: "static" }}>
+                  <span className={styles.escrowDot} /> Escrow Protected
+                </span>
+              </div>
+
+              <h2 className={styles.modalTitle}>
+                {selectedBuyProduct.emoji} {selectedBuyProduct.title}
+              </h2>
+              <p className={styles.modalSub}>
+                Seller: <code style={{ color: "#00D4AA" }}>{selectedBuyProduct.seller.address}</code> • Order ID: <code>{selectedBuyProduct.orderId}</code>
+              </p>
+            </div>
+
+            {/* Price Banner */}
+            <div className={styles.productPriceBanner}>
+              <div>
+                <span className={styles.priceBannerLabel}>Required Escrow Deposit</span>
+                <div className={styles.priceBannerValue}>{selectedBuyProduct.price.toLocaleString()} Qi</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span className={styles.priceBannerLabel}>Delivery Window</span>
+                <div className={styles.priceBannerSub}>⏱️ {selectedBuyProduct.deadline}</div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className={styles.detailSection}>
+              <h4 className={styles.detailSectionTitle}>📋 Specifications & Shipping Terms</h4>
+              <p className={styles.detailText}>{selectedBuyProduct.description}</p>
+            </div>
+
+            {/* Protection Notice */}
+            <div className={styles.protectionBox}>
+              <div className={styles.protectionIcon}>🛡️</div>
+              <div>
+                <div className={styles.protectionTitle}>Quai Network Buyer Guarantee</div>
+                <div className={styles.protectionText}>
+                  Your {selectedBuyProduct.price.toLocaleString()} Qi deposit is wrapped to WQI and held safely in <code>ProductEscrow.sol</code>. Funds release to the seller only after you confirm successful delivery.
+                </div>
+              </div>
+            </div>
+
+            {/* Contract Explorer Receipt */}
+            {selectedBuyProduct.txHash && (
+              <div style={{ margin: "16px 0" }}>
+                <ExplorerLink hash={selectedBuyProduct.txHash} label="ProductEscrow Contract Evidence & Receipt" />
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <form onSubmit={handleDepositEscrowSubmit} className={styles.modalActions} style={{ marginTop: "24px" }}>
+              <button
+                type="button"
+                className="btn btn-outlined"
+                onClick={() => setSelectedBuyProduct(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={contractLoading}
+                style={{ minWidth: "240px", justifyContent: "center" }}
+              >
+                {contractLoading ? "✍️ Signing Escrow Deposit..." : `Deposit ${selectedBuyProduct.price.toLocaleString()} Qi & Buy`}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </div>
   );
 }
