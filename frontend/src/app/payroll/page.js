@@ -421,7 +421,7 @@ export default function PayrollPage() {
                   <a
                     href={`https://orchard.quaiscan.io/tx/${executedTxHash}`}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     style={{ color: "#00D4AA", textDecoration: "underline" }}
                   >
                     {executedTxHash}

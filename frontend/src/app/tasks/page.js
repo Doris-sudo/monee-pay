@@ -294,7 +294,8 @@ export default function TasksPage() {
     };
 
     try {
-      const existing = JSON.parse(localStorage.getItem("moneepay_my_applications") || "[]");
+      const parsed = JSON.parse(localStorage.getItem("moneepay_my_applications") || "[]");
+      const existing = Array.isArray(parsed) ? parsed : [];
       localStorage.setItem("moneepay_my_applications", JSON.stringify([newApp, ...existing]));
     } catch (err) {
       console.warn("Failed to save application to localStorage:", err);
