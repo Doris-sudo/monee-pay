@@ -1,6 +1,6 @@
 /* =============================================
    MoneePay — Tasks & Rewards Discovery Page
-   Ultra-Premium Web3 Styling & Pop-Up Modal
+   Ultra-Premium Web3 Styling & Pop-Up Modals
    ============================================= */
 
 .layoutContainer {
@@ -580,7 +580,7 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 180, 216, 0.15);
   width: 100%;
-  max-width: 680px;
+  max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 32px 36px;
@@ -771,7 +771,6 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text-primary);
-
 }
 
 .trancheSub {
@@ -946,6 +945,140 @@
   margin-top: 10px;
 }
 
+/* =============================================
+   VIEW TASK & APPLICATION MODAL STYLING
+   ============================================= */
+
+.taskDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.detailCard {
+  background: rgba(15, 23, 42, 0.6);
+  border: var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: left;
+}
+
+.detailLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.detailValue {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.detailValueTeal {
+  font-size: 1.35rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #00B4D8 0%, #00D4AA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.detailSub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.detailSection {
+  margin-bottom: 20px;
+}
+
+.detailSectionTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.detailText {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.trancheScheduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scheduleItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: var(--radius-sm);
+  gap: 12px;
+}
+
+.scheduleIndex {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #A78BFA;
+  background: rgba(139, 92, 246, 0.2);
+  padding: 4px 8px;
+  border-radius: 50%;
+}
+
+.scheduleTitle {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.scheduleAmount {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #A78BFA;
+}
+
+.divider {
+  border: 0;
+  border-top: var(--border-subtle);
+  margin: 24px 0;
+}
+
+.applyForm {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(0, 180, 216, 0.25);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.applyFormTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.applyFormSub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -1036,6 +1169,10 @@
 
   .modalContent {
     padding: 24px 20px;
+  }
+
+  .taskDetailGrid {
+    grid-template-columns: 1fr;
   }
 
   .formRow {
