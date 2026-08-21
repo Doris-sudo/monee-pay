@@ -26,9 +26,9 @@ const MOCK_TASKS = [
     orderId: "k2m9x4",
     contractAddress: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
     milestones: [
-      { title: "Initial Scope", amount: 400 },
-      { title: "Vulnerability Audit", amount: 400 },
-      { title: "Final Sign-off", amount: 400 },
+      { title: "Initial Scope & Architecture Review", amount: 400 },
+      { title: "Vulnerability Audit & Gas Analysis", amount: 400 },
+      { title: "Final Fix Verification & Sign-off", amount: 400 },
     ],
   },
   {
@@ -88,10 +88,10 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
 
-  // Local state for dynamically created tasks (#25)
+  // Local state for custom tasks
   const [customTasks, setCustomTasks] = useState([]);
 
-  // Modal Form State
+  // Create Escrow Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -102,6 +102,13 @@ export default function TasksPage() {
     { title: "Phase 1: Initial Scope", percent: 50 },
     { title: "Phase 2: Final Sign-off & Delivery", percent: 50 },
   ]);
+
+  // View & Apply Task Modal State
+  const [selectedApplyTask, setSelectedApplyTask] = useState(null);
+  const [applyProposal, setApplyProposal] = useState("");
+  const [applyTimeline, setApplyTimeline] = useState("3 Days");
+  const [applyPortfolio, setApplyPortfolio] = useState("");
+  const [isSubmittingApply, setIsSubmittingApply] = useState(false);
 
   // Merge on-chain tasks, custom created tasks, and mock catalog items
   const allTasks = useMemo(() => {
@@ -116,7 +123,7 @@ export default function TasksPage() {
       deadline: "Flexible",
       orderId: t.id ? t.id.slice(0, 8) : "k2m9x4",
       contractAddress: CONTRACT_ADDRESSES.MilestoneEscrow,
-      milestones: t.milestones || [{ title: "Delivery", amount: t.reward || 500 }],
+      milestones: t.milestones || [{ title: "Delivery Milestone", amount: t.reward || 500 }],
     }));
     return [...customTasks, ...liveItems, ...MOCK_TASKS];
   }, [onChainTasks, customTasks]);
@@ -198,7 +205,7 @@ export default function TasksPage() {
     }
   };
 
-  // Submit Modal Form
+  // Submit Create Task Form
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) {
@@ -241,7 +248,6 @@ export default function TasksPage() {
         txHash: hash,
       });
 
-      // Add to local custom tasks
       const newTask = {
         id: `created-${Date.now()}`,
         title: formTitle,
@@ -261,14 +267,39 @@ export default function TasksPage() {
 
       setCustomTasks((prev) => [newTask, ...prev]);
       setIsModalOpen(false);
-
-      // Reset form
       setFormTitle("");
       setFormDesc("");
       setFormRewardQi("500");
     } catch (err) {
       addToast({ message: `⚠️ Task Creation Failed: ${err.message}`, type: "error" });
     }
+  };
+
+  // Submit Application Form
+  const handleApplySubmit = (e) => {
+    e.preventDefault();
+    if (!applyProposal.trim()) {
+      addToast({ message: "⚠️ Please enter your proposal or execution approach.", type: "error" });
+      return;
+    }
+
+    if (!isConnected) {
+      addToast({ message: "✍️ Please connect your wallet to submit your application.", type: "prompt" });
+      connectWallet();
+      return;
+    }
+
+    setIsSubmittingApply(true);
+    setTimeout(() => {
+      setIsSubmittingApply(false);
+      addToast({
+        message: `🚀 Application submitted for "${selectedApplyTask.title}"! Task creator has been notified.`,
+        type: "success",
+      });
+      setSelectedApplyTask(null);
+      setApplyProposal("");
+      setApplyPortfolio("");
+    }, 800);
   };
 
   return (
@@ -342,7 +373,7 @@ export default function TasksPage() {
             </button>
             <button
               className={`${styles.filterTab} ${activeTab === "milestone" ? styles.filterTabActive : ""}`}
-              onClick={() => setActiveTab("all")}
+              onClick={() => setActiveTab("milestone")}
             >
               🎯 Milestone Escrows
             </button>
@@ -455,9 +486,12 @@ export default function TasksPage() {
                     text={`Check out this task bounty: "${t.title}" (${t.reward} Qi) on Quai Network! ⚡`}
                     buttonText="Share Task"
                   />
-                  <Link href={`/order/${t.orderId}`} className={styles.claimBtn}>
+                  <button
+                    className={styles.claimBtn}
+                    onClick={() => setSelectedApplyTask(t)}
+                  >
                     View Task & Apply ({t.reward.toLocaleString()} Qi) →
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -474,7 +508,7 @@ export default function TasksPage() {
         )}
       </main>
 
-      {/* POP-UP MODAL FORM FOR TASK ESCROW CREATION */}
+      {/* POP-UP MODAL 1: CREATE TASK ESCROW */}
       {isModalOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -491,7 +525,6 @@ export default function TasksPage() {
             </div>
 
             <form onSubmit={handleFormSubmit} className={styles.modalForm}>
-              {/* Form Presets */}
               <div className={styles.presetBar}>
                 <span className={styles.presetLabel}>Quick Presets:</span>
                 <button type="button" className={styles.presetBtn} onClick={() => applyPreset("single")}>
@@ -505,7 +538,6 @@ export default function TasksPage() {
                 </button>
               </div>
 
-              {/* Task Title */}
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Task Title *</label>
                 <input
@@ -518,7 +550,6 @@ export default function TasksPage() {
                 />
               </div>
 
-              {/* Description */}
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Description & Scope of Work</label>
                 <textarea
@@ -530,7 +561,6 @@ export default function TasksPage() {
                 />
               </div>
 
-              {/* Type & Difficulty Row */}
               <div className={styles.formRow}>
                 <div className={styles.inputGroup} style={{ flex: 1 }}>
                   <label className={styles.label}>Escrow Structure</label>
@@ -558,7 +588,6 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Deposit Reward Amount */}
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Total Escrow Reward Deposit (Qi) *</label>
                 <div className={styles.currencyInputWrapper}>
@@ -579,7 +608,6 @@ export default function TasksPage() {
                 </span>
               </div>
 
-              {/* Milestone Tranche Allocation Builder */}
               <div className={styles.trancheSection}>
                 <div className={styles.trancheHeader}>
                   <div>
@@ -651,7 +679,6 @@ export default function TasksPage() {
                 </button>
               </div>
 
-              {/* Smart Contract Notice Box */}
               <div className={styles.contractNotice}>
                 <div className={styles.noticeIcon}>🔒</div>
                 <div>
@@ -662,7 +689,6 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Submit Buttons */}
               <div className={styles.modalActions}>
                 <button
                   type="button"
@@ -678,6 +704,178 @@ export default function TasksPage() {
                   style={{ minWidth: "220px", justifyContent: "center" }}
                 >
                   {contractLoading ? "✍️ Signing Escrow Deposit..." : `Deposit & Lock (${formRewardQi} Qi)`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POP-UP MODAL 2: VIEW TASK & SUBMIT APPLICATION */}
+      {selectedApplyTask && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedApplyTask(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeBtn} onClick={() => setSelectedApplyTask(null)}>
+              ✕
+            </button>
+
+            {/* Header */}
+            <div className={styles.modalHeader}>
+              <div className={styles.taskBadges} style={{ marginBottom: "10px" }}>
+                <span className={`${styles.typeBadge} ${selectedApplyTask.type === "milestone" ? styles.typeMilestone : styles.typeBounty}`}>
+                  {selectedApplyTask.type === "milestone" ? "🎯 Milestone Escrow" : "⚡ Single Bounty"}
+                </span>
+                <span
+                  className={`${styles.difficultyBadge} ${
+                    selectedApplyTask.difficulty === "easy"
+                      ? styles.diffEasy
+                      : selectedApplyTask.difficulty === "medium"
+                      ? styles.diffMedium
+                      : styles.diffHard
+                  }`}
+                >
+                  {selectedApplyTask.difficulty}
+                </span>
+                <span className={styles.escrowLockBadge}>
+                  <span className={styles.lockDot} /> Escrow Funds Locked
+                </span>
+              </div>
+
+              <h2 className={styles.modalTitle}>{selectedApplyTask.title}</h2>
+              <p className={styles.modalSub}>
+                Posted by <code style={{ color: "#00D4AA" }}>{selectedApplyTask.creator.address}</code> • Smart Contract Order ID: <code>{selectedApplyTask.orderId}</code>
+              </p>
+            </div>
+
+            {/* Task Overview Grid */}
+            <div className={styles.taskDetailGrid}>
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Total Escrow Reward</span>
+                <div className={styles.detailValueTeal}>{selectedApplyTask.reward.toLocaleString()} Qi</div>
+                <span className={styles.detailSub}>Protected by WQI Contract</span>
+              </div>
+
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Milestone Tranches</span>
+                <div className={styles.detailValue}>
+                  {selectedApplyTask.milestones && selectedApplyTask.milestones.length > 0
+                    ? `${selectedApplyTask.milestones.length} Tranches`
+                    : "1 Single Payout"}
+                </div>
+                <span className={styles.detailSub}>Release on approval</span>
+              </div>
+
+              <div className={styles.detailCard}>
+                <span className={styles.detailLabel}>Target Deadline</span>
+                <div className={styles.detailValue}>{selectedApplyTask.deadline || "Flexible"}</div>
+                <span className={styles.detailSub}>Delivery SLA</span>
+              </div>
+            </div>
+
+            {/* Full Scope & Description */}
+            <div className={styles.detailSection}>
+              <h4 className={styles.detailSectionTitle}>📋 Scope of Work & Deliverables</h4>
+              <p className={styles.detailText}>{selectedApplyTask.description}</p>
+            </div>
+
+            {/* Milestone Breakdown List */}
+            {selectedApplyTask.milestones && selectedApplyTask.milestones.length > 0 && (
+              <div className={styles.detailSection}>
+                <h4 className={styles.detailSectionTitle}>🎯 Milestone Tranche Schedule</h4>
+                <div className={styles.trancheScheduleList}>
+                  {selectedApplyTask.milestones.map((m, idx) => (
+                    <div key={idx} className={styles.scheduleItem}>
+                      <div className={styles.scheduleIndex}>M{idx + 1}</div>
+                      <div className={styles.scheduleTitle}>{m.title}</div>
+                      <div className={styles.scheduleAmount}>{m.amount.toLocaleString()} Qi</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Contract Verification Link */}
+            {selectedApplyTask.contractAddress && (
+              <div style={{ margin: "16px 0" }}>
+                <ExplorerLink hash={selectedApplyTask.contractAddress} label="MilestoneEscrow Contract Evidence & Receipt" />
+              </div>
+            )}
+
+            <hr className={styles.divider} />
+
+            {/* Application Submission Form Section */}
+            <form onSubmit={handleApplySubmit} className={styles.applyForm}>
+              <h3 className={styles.applyFormTitle}>✍️ Submit Your Solver Application</h3>
+              <p className={styles.applyFormSub}>
+                Provide your execution proposal and estimated delivery timeline. The task creator will review and assign you on-chain via <code>assignSolver()</code>.
+              </p>
+
+              {/* Applicant Wallet Address */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Applicant Quai Wallet Address</label>
+                <input
+                  type="text"
+                  readOnly
+                  className={styles.formInput}
+                  value={isConnected ? account : "Wallet Not Connected (Click Submit to Connect)"}
+                  style={{ background: "rgba(0,0,0,0.4)", color: isConnected ? "#00D4AA" : "#94A3B8", fontFamily: "monospace" }}
+                />
+              </div>
+
+              {/* Cover Note / Proposal */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Proposal & Technical Approach *</label>
+                <textarea
+                  rows={3}
+                  placeholder="Explain why you are qualified for this task, your technical plan, and how you will complete the deliverables..."
+                  className={styles.formTextarea}
+                  value={applyProposal}
+                  onChange={(e) => setApplyProposal(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Delivery Timeline & Portfolio Row */}
+              <div className={styles.formRow}>
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Estimated Delivery Time</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 3 Days"
+                    className={styles.formInput}
+                    value={applyTimeline}
+                    onChange={(e) => setApplyTimeline(e.target.value)}
+                  />
+                </div>
+
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Portfolio / GitHub Link (Optional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://github.com/yourhandle"
+                    className={styles.formInput}
+                    value={applyPortfolio}
+                    onChange={(e) => setApplyPortfolio(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className={styles.modalActions} style={{ marginTop: "16px" }}>
+                <button
+                  type="button"
+                  className="btn btn-outlined"
+                  onClick={() => setSelectedApplyTask(null)}
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingApply}
+                  style={{ minWidth: "220px", justifyContent: "center" }}
+                >
+                  {isSubmittingApply ? "Sending Application..." : `🚀 Apply for Task (${selectedApplyTask.reward.toLocaleString()} Qi)`}
                 </button>
               </div>
             </form>
