@@ -12,6 +12,13 @@ import { useEscrowContracts, CONTRACT_ADDRESSES } from "@/hooks/useEscrowContrac
 import { useToast } from "@/context/ToastContext";
 import styles from "./Marketplace.module.css";
 
+const DEFAULT_PRODUCT_IMAGES = {
+  Electronics: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80",
+  "Digital Assets": "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&w=800&q=80",
+  Services: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80",
+  General: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80",
+};
+
 const MOCK_PRODUCTS = [
   {
     id: "mp-001",
@@ -20,6 +27,7 @@ const MOCK_PRODUCTS = [
     price: 2400,
     category: "Electronics",
     badgeTag: "HARDWARE",
+    imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80",
     seller: { address: "0x001c...3f47", initial: "B" },
     deadline: "3 Days",
     status: "live",
@@ -33,6 +41,7 @@ const MOCK_PRODUCTS = [
     price: 800,
     category: "Digital Assets",
     badgeTag: "DIGITAL",
+    imageUrl: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?auto=format&fit=crop&w=800&q=80",
     seller: { address: "0x0035...fbc6", initial: "Q" },
     deadline: "5 Days",
     status: "live",
@@ -46,6 +55,7 @@ const MOCK_PRODUCTS = [
     price: 1200,
     category: "Services",
     badgeTag: "SERVICE",
+    imageUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80",
     seller: { address: "0x000E...8fbA", initial: "S" },
     deadline: "7 Days",
     status: "live",
@@ -74,6 +84,7 @@ export default function MarketplacePage() {
   const [formPriceQi, setFormPriceQi] = useState("1000");
   const [formCategory, setFormCategory] = useState("Electronics");
   const [formDeadlineDays, setFormDeadlineDays] = useState("3");
+  const [formImageUrl, setFormImageUrl] = useState("");
 
   // Buy Product Modal State
   const [selectedBuyProduct, setSelectedBuyProduct] = useState(null);
@@ -87,6 +98,7 @@ export default function MarketplacePage() {
       price: ord.priceQi || 1000,
       category: "Digital Assets",
       badgeTag: "ON-CHAIN",
+      imageUrl: DEFAULT_PRODUCT_IMAGES["Digital Assets"],
       seller: { address: ord.seller ? `${ord.seller.slice(0, 6)}...${ord.seller.slice(-4)}` : "0x001c...3f47", initial: "Q" },
       deadline: "3 Days",
       status: "live",
@@ -123,6 +135,11 @@ export default function MarketplacePage() {
       });
   }, [allListings, activeCategory, searchQuery, sortBy]);
 
+  // Image Fallback Handler
+  const handleImageError = (e, category) => {
+    e.target.src = DEFAULT_PRODUCT_IMAGES[category] || DEFAULT_PRODUCT_IMAGES.General;
+  };
+
   // Submit Create Product Listing Form
   const handleCreateProductSubmit = async (e) => {
     e.preventDefault();
@@ -158,6 +175,8 @@ export default function MarketplacePage() {
         txHash: hash,
       });
 
+      const chosenImg = formImageUrl.trim() || DEFAULT_PRODUCT_IMAGES[formCategory] || DEFAULT_PRODUCT_IMAGES.General;
+
       const newListing = {
         id: `custom-prod-${Date.now()}`,
         title: formTitle,
@@ -165,6 +184,7 @@ export default function MarketplacePage() {
         price: priceNum,
         category: formCategory,
         badgeTag: formCategory.toUpperCase(),
+        imageUrl: chosenImg,
         seller: { address: `${account.slice(0, 6)}...${account.slice(-4)}`, initial: "YOU" },
         deadline: `${formDeadlineDays} Days`,
         status: "live",
@@ -177,6 +197,7 @@ export default function MarketplacePage() {
       setFormTitle("");
       setFormDesc("");
       setFormPriceQi("1000");
+      setFormImageUrl("");
     } catch (err) {
       addToast({ message: `Listing Creation Failed: ${err.message}`, type: "error" });
     }
@@ -314,6 +335,14 @@ export default function MarketplacePage() {
           {filteredProducts.map((p) => (
             <div key={p.id} className={styles.productCard}>
               <div className={styles.cardImageArea}>
+                <img
+                  src={p.imageUrl || DEFAULT_PRODUCT_IMAGES[p.category] || DEFAULT_PRODUCT_IMAGES.General}
+                  alt={p.title}
+                  className={styles.productImg}
+                  onError={(e) => handleImageError(e, p.category)}
+                />
+                <div className={styles.cardImageOverlay} />
+
                 <div className={styles.productBadgeTag}>{p.badgeTag || "ITEM"}</div>
                 <span className={styles.categoryBadge}>{p.category}</span>
                 <div className={styles.escrowBadge}>
@@ -400,6 +429,45 @@ export default function MarketplacePage() {
                   onChange={(e) => setFormTitle(e.target.value)}
                   required
                 />
+              </div>
+
+              {/* Product Image URL Input */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Product Image URL</label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className={styles.formInput}
+                  value={formImageUrl}
+                  onChange={(e) => setFormImageUrl(e.target.value)}
+                />
+                <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#94A3B8", alignSelf: "center" }}>Sample Presets:</span>
+                  <button
+                    type="button"
+                    className="btn btn-outlined btn-sm"
+                    style={{ fontSize: "0.72rem", padding: "3px 8px" }}
+                    onClick={() => setFormImageUrl(DEFAULT_PRODUCT_IMAGES.Electronics)}
+                  >
+                    Hardware Image
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outlined btn-sm"
+                    style={{ fontSize: "0.72rem", padding: "3px 8px" }}
+                    onClick={() => setFormImageUrl(DEFAULT_PRODUCT_IMAGES["Digital Assets"])}
+                  >
+                    NFT Image
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outlined btn-sm"
+                    style={{ fontSize: "0.72rem", padding: "3px 8px" }}
+                    onClick={() => setFormImageUrl(DEFAULT_PRODUCT_IMAGES.Services)}
+                  >
+                    Security Audit Image
+                  </button>
+                </div>
               </div>
 
               {/* Description */}
@@ -511,6 +579,27 @@ export default function MarketplacePage() {
             <button className={styles.closeBtn} onClick={() => setSelectedBuyProduct(null)}>
               ✕
             </button>
+
+            {/* Modal Product Hero Image */}
+            <div style={{
+              height: "180px",
+              borderRadius: "12px",
+              overflow: "hidden",
+              position: "relative",
+              marginBottom: "18px"
+            }}>
+              <img
+                src={selectedBuyProduct.imageUrl || DEFAULT_PRODUCT_IMAGES[selectedBuyProduct.category] || DEFAULT_PRODUCT_IMAGES.General}
+                alt={selectedBuyProduct.title}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e) => handleImageError(e, selectedBuyProduct.category)}
+              />
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(180deg, rgba(11, 19, 43, 0.2) 0%, rgba(11, 19, 43, 0.85) 100%)"
+              }} />
+            </div>
 
             <div className={styles.modalHeader}>
               <div className={styles.cardBadges} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>

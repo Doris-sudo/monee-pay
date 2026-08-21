@@ -272,21 +272,29 @@
 
 /* Card Image Area */
 .cardImageArea {
-  height: 160px;
-  background: linear-gradient(135deg, rgba(0, 212, 170, 0.06) 0%, rgba(0, 180, 216, 0.04) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 180px;
+  background: #0B132B;
   border-bottom: var(--border-subtle);
   position: relative;
   overflow: hidden;
 }
 
-.productEmoji {
-  font-size: 3.2rem;
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+.productImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.productCard:hover .productImg {
+  transform: scale(1.06);
+}
+
+.cardImageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 14, 26, 0.3) 0%, rgba(10, 14, 26, 0.85) 100%);
+  pointer-events: none;
 }
 
 .escrowBadge {
