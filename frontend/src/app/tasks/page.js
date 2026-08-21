@@ -290,10 +290,33 @@ export default function TasksPage() {
     }
 
     setIsSubmittingApply(true);
+
+    const newApp = {
+      id: `app-${Date.now()}`,
+      taskId: selectedApplyTask.id || "task-001",
+      taskTitle: selectedApplyTask.title || "Milestone Task",
+      rewardQi: selectedApplyTask.reward || 500,
+      type: selectedApplyTask.type || "milestone",
+      creator: selectedApplyTask.creator?.address || "0x001c...3f47",
+      proposal: applyProposal,
+      timeline: applyTimeline,
+      portfolio: applyPortfolio,
+      submittedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      status: "Under Review",
+      statusType: "review",
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem("moneepay_my_applications") || "[]");
+      localStorage.setItem("moneepay_my_applications", JSON.stringify([newApp, ...existing]));
+    } catch (err) {
+      console.warn("Failed to save application to localStorage:", err);
+    }
+
     setTimeout(() => {
       setIsSubmittingApply(false);
       addToast({
-        message: `🚀 Application submitted for "${selectedApplyTask.title}"! Task creator has been notified.`,
+        message: `✓ Application submitted for "${selectedApplyTask.title}"! Track status under Dashboard > My Applications.`,
         type: "success",
       });
       setSelectedApplyTask(null);
