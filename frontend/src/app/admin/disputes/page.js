@@ -40,7 +40,7 @@ const MOCK_DISPUTES = [
 
 export default function DisputesAdminPage() {
   const { account, isConnected, connectWallet } = useWallet();
-  const { resolveDispute, transferArbitratorRole, loading } = useEscrowContracts();
+  const { resolveDispute, transferArbitrator, loading } = useEscrowContracts();
   const { addToast } = useToast();
 
   const [disputesList, setDisputesList] = useState(MOCK_DISPUTES);
@@ -49,20 +49,31 @@ export default function DisputesAdminPage() {
   const [newArbitratorAddr, setNewArbitratorAddr] = useState("");
   const [roleTransferMsg, setRoleTransferMsg] = useState("");
 
+  const designatedArbitrator = CONTRACT_ADDRESSES.Arbitrator;
+  const isArbitratorAuthorized = isConnected && account && account.toLowerCase() === designatedArbitrator.toLowerCase();
+
   const handleResolveDisputeSubmit = async (e) => {
     e.preventDefault();
     if (!selectedDispute) return;
 
     if (!isConnected) {
-      addToast({ message: "Please connect arbitrator wallet to execute settlement.", type: "prompt" });
+      addToast({ message: "Please connect authorized arbitrator wallet to execute settlement.", type: "prompt" });
       connectWallet();
+      return;
+    }
+
+    if (!isArbitratorAuthorized) {
+      addToast({
+        message: `Unauthorized: Connected wallet (${account.slice(0, 6)}...${account.slice(-4)}) is not the designated Arbitrator (${designatedArbitrator.slice(0, 6)}...${designatedArbitrator.slice(-4)}).`,
+        type: "error",
+      });
       return;
     }
 
     try {
       addToast({ message: "Awaiting arbitrator wallet signature...", type: "prompt" });
 
-      const hash = await resolveDispute(selectedDispute.orderId, splitPercent);
+      const hash = await resolveDispute(selectedDispute.escrowType, selectedDispute.orderId, splitPercent);
 
       addToast({
         message: `Dispute settled! Split: ${splitPercent}% to Buyer / ${100 - splitPercent}% to Seller.`,
@@ -81,12 +92,27 @@ export default function DisputesAdminPage() {
     e.preventDefault();
     if (!newArbitratorAddr.trim()) return;
 
+    if (!isConnected) {
+      addToast({ message: "Please connect authorized arbitrator wallet.", type: "prompt" });
+      connectWallet();
+      return;
+    }
+
+    if (!isArbitratorAuthorized) {
+      addToast({
+        message: `Unauthorized: Only designated Arbitrator (${designatedArbitrator.slice(0, 6)}...${designatedArbitrator.slice(-4)}) can transfer arbitration governance.`,
+        type: "error",
+      });
+      return;
+    }
+
     try {
       addToast({ message: "Signing Arbitrator Role Transfer...", type: "prompt" });
 
-      const hash = await transferArbitratorRole(newArbitratorAddr.trim());
+      const hash = await transferArbitrator("product", newArbitratorAddr.trim());
       setRoleTransferMsg(`Arbitrator role successfully transferred to ${newArbitratorAddr}. Tx: ${hash}`);
       addToast({ message: "Arbitrator role transferred!", type: "success", txHash: hash });
+      setNewArbitratorAddr("");
     } catch (err) {
       setRoleTransferMsg(`Transfer Failed: ${err.message}`);
       addToast({ message: `Transfer Failed: ${err.message}`, type: "error" });
@@ -101,7 +127,21 @@ export default function DisputesAdminPage() {
         {/* Header */}
         <div className={styles.headerSection}>
           <div className={styles.headerLeft}>
-            <span className={styles.badgeLabel}>Arbitration Command Center</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
+              <span className={styles.badgeLabel}>Arbitration Command Center</span>
+              <span style={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                padding: "3px 10px",
+                borderRadius: "20px",
+                background: isArbitratorAuthorized ? "rgba(16, 185, 129, 0.12)" : "rgba(245, 158, 11, 0.12)",
+                border: isArbitratorAuthorized ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(245, 158, 11, 0.3)",
+                color: isArbitratorAuthorized ? "#10B981" : "#F59E0B",
+              }}>
+                {isArbitratorAuthorized ? "Authorized Arbitrator" : isConnected ? "Unauthorized Observer Wallet" : "Wallet Disconnected"}
+              </span>
+            </div>
+
             <h1 className={styles.title}>
               Dispute <span className="gradient-text">Arbitration Panel</span>
             </h1>
@@ -110,6 +150,30 @@ export default function DisputesAdminPage() {
             </p>
           </div>
         </div>
+
+        {/* Authorization Alert Banner if Not Authorized */}
+        {isConnected && !isArbitratorAuthorized && (
+          <div style={{
+            background: "rgba(245, 158, 11, 0.08)",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+            borderRadius: "10px",
+            padding: "14px 18px",
+            marginBottom: "24px",
+            color: "#FBBF24",
+            fontSize: "0.88rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
+          }}>
+            <strong>Role Authorization Guard Notice</strong>
+            <span>
+              Connected Wallet: <code>{account}</code>. Designated Arbitrator Contract Owner: <code>{designatedArbitrator}</code>.
+            </span>
+            <span style={{ color: "#94A3B8", fontSize: "0.82rem" }}>
+              You are currently viewing in read-only mode. On-chain settlement transactions require signatures from the designated arbitrator multisig wallet.
+            </span>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className={styles.statsBanner}>
@@ -248,11 +312,17 @@ export default function DisputesAdminPage() {
                 />
               </div>
 
+              {!isArbitratorAuthorized && (
+                <div style={{ color: "#EF4444", fontSize: "0.82rem", margin: "12px 0", background: "rgba(239, 68, 68, 0.1)", padding: "8px 12px", borderRadius: "6px" }}>
+                  Warning: Connected wallet ({account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "None"}) is not authorized to sign arbitrator resolutions.
+                </div>
+              )}
+
               <div className={styles.modalActions}>
                 <button type="button" className="btn btn-outlined" onClick={() => setSelectedDispute(null)}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary" disabled={loading || !isArbitratorAuthorized}>
                   {loading ? "Signing Settlement..." : `Confirm Settlement Split (${splitPercent}% / ${100 - splitPercent}%)`}
                 </button>
               </div>

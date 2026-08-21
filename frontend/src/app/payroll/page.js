@@ -128,6 +128,11 @@ export default function PayrollPage() {
   // Admin RBAC handlers
   const handleGrantAdmin = async () => {
     if (!adminAddr) return;
+    if (!isConnected) {
+      setAdminStatusMsg("Error: Please connect authorized corporate treasury wallet.");
+      connectWallet();
+      return;
+    }
     try {
       const hash = await grantAdmin(adminAddr);
       setAdminStatusMsg(`Admin granted to ${adminAddr}. Tx: ${hash}`);
@@ -139,6 +144,11 @@ export default function PayrollPage() {
 
   const handleRevokeAdmin = async () => {
     if (!adminAddr) return;
+    if (!isConnected) {
+      setAdminStatusMsg("Error: Please connect authorized corporate treasury wallet.");
+      connectWallet();
+      return;
+    }
     try {
       const hash = await revokeAdmin(adminAddr);
       setAdminStatusMsg(`Admin revoked from ${adminAddr}. Tx: ${hash}`);
@@ -156,6 +166,19 @@ export default function PayrollPage() {
         {/* Header */}
         <div className={styles.headerSection}>
           <div className={styles.titleGroup}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
+              <span style={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                padding: "3px 10px",
+                borderRadius: "20px",
+                background: isConnected ? "rgba(16, 185, 129, 0.12)" : "rgba(245, 158, 11, 0.12)",
+                border: isConnected ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(245, 158, 11, 0.3)",
+                color: isConnected ? "#10B981" : "#F59E0B",
+              }}>
+                {isConnected ? "Authorized Treasury Admin" : "Wallet Disconnected"}
+              </span>
+            </div>
             <h1 className={styles.title}>
               MoneePay for <span className="gradient-text">Teams & Payroll</span>
             </h1>
