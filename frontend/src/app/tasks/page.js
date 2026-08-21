@@ -7,6 +7,9 @@ import Footer from "@/components/Footer";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import ExplorerLink from "@/components/ExplorerLink";
 import { useMilestoneEscrow } from "@/hooks/useMilestoneEscrow";
+import { useWallet } from "@/hooks/useWallet";
+import { useEscrowContracts, CONTRACT_ADDRESSES } from "@/hooks/useEscrowContracts";
+import { useToast } from "@/context/ToastContext";
 import styles from "./Tasks.module.css";
 
 const MOCK_TASKS = [
@@ -77,12 +80,30 @@ const MOCK_TASKS = [
 
 export default function TasksPage() {
   const { tasks: onChainTasks, loading: onChainLoading } = useMilestoneEscrow();
+  const { account, isConnected, connectWallet } = useWallet();
+  const { createTask, loading: contractLoading } = useEscrowContracts();
+  const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
 
-  // Merge live MilestoneEscrow tasks with mock catalog items (#28)
+  // Local state for dynamically created tasks (#25)
+  const [customTasks, setCustomTasks] = useState([]);
+
+  // Modal Form State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formTitle, setFormTitle] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [formRewardQi, setFormRewardQi] = useState("500");
+  const [formType, setFormType] = useState("milestone");
+  const [formDifficulty, setFormDifficulty] = useState("medium");
+  const [formMilestones, setFormMilestones] = useState([
+    { title: "Phase 1: Initial Scope", percent: 50 },
+    { title: "Phase 2: Final Sign-off & Delivery", percent: 50 },
+  ]);
+
+  // Merge on-chain tasks, custom created tasks, and mock catalog items
   const allTasks = useMemo(() => {
     const liveItems = onChainTasks.map((t, idx) => ({
       id: t.id || `live-task-${idx}`,
@@ -94,11 +115,11 @@ export default function TasksPage() {
       creator: { address: t.creator ? `${t.creator.slice(0, 6)}...${t.creator.slice(-4)}` : "0x001c...3f47", initial: "Q" },
       deadline: "Flexible",
       orderId: t.id ? t.id.slice(0, 8) : "k2m9x4",
-      contractAddress: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
+      contractAddress: CONTRACT_ADDRESSES.MilestoneEscrow,
       milestones: t.milestones || [{ title: "Delivery", amount: t.reward || 500 }],
     }));
-    return [...liveItems, ...MOCK_TASKS];
-  }, [onChainTasks]);
+    return [...customTasks, ...liveItems, ...MOCK_TASKS];
+  }, [onChainTasks, customTasks]);
 
   // Aggregate Stats
   const totalRewardVolume = useMemo(() => {
@@ -125,6 +146,131 @@ export default function TasksPage() {
       });
   }, [allTasks, activeTab, searchQuery, sortBy]);
 
+  // Milestone Form Helpers
+  const totalPercent = useMemo(() => {
+    return formMilestones.reduce((acc, m) => acc + Number(m.percent || 0), 0);
+  }, [formMilestones]);
+
+  const isPercentValid = totalPercent === 100;
+
+  const handleAddMilestone = () => {
+    setFormMilestones((prev) => [
+      ...prev,
+      { title: `Milestone ${prev.length + 1}`, percent: 0 },
+    ]);
+  };
+
+  const handleRemoveMilestone = (index) => {
+    if (formMilestones.length <= 1) return;
+    setFormMilestones((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleMilestoneChange = (index, field, value) => {
+    setFormMilestones((prev) =>
+      prev.map((m, idx) => {
+        if (idx !== index) return m;
+        return {
+          ...m,
+          [field]: field === "percent" ? Math.max(0, Math.min(100, Number(value) || 0)) : value,
+        };
+      })
+    );
+  };
+
+  // Presets
+  const applyPreset = (presetType) => {
+    if (presetType === "single") {
+      setFormType("bounty");
+      setFormMilestones([{ title: "Single Bounty Completion", percent: 100 }]);
+    } else if (presetType === "two-phase") {
+      setFormType("milestone");
+      setFormMilestones([
+        { title: "Phase 1: Initial Architecture & Review", percent: 50 },
+        { title: "Phase 2: Implementation & Delivery", percent: 50 },
+      ]);
+    } else if (presetType === "three-phase") {
+      setFormType("milestone");
+      setFormMilestones([
+        { title: "Tranche 1: Architecture & Scope", percent: 40 },
+        { title: "Tranche 2: Core Development", percent: 30 },
+        { title: "Tranche 3: Audit & Sign-off", percent: 30 },
+      ]);
+    }
+  };
+
+  // Submit Modal Form
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!formTitle.trim()) {
+      addToast({ message: "⚠️ Please enter a task title.", type: "error" });
+      return;
+    }
+    const rewardNum = parseFloat(formRewardQi);
+    if (isNaN(rewardNum) || rewardNum <= 0) {
+      addToast({ message: "⚠️ Please enter a valid reward deposit amount in Qi.", type: "error" });
+      return;
+    }
+    if (!isPercentValid) {
+      addToast({ message: `⚠️ Milestone percentages must sum to 100% (Current sum: ${totalPercent}%).`, type: "error" });
+      return;
+    }
+
+    if (!isConnected) {
+      addToast({ message: "✍️ Please connect your wallet to lock escrow on-chain.", type: "prompt" });
+      connectWallet();
+      return;
+    }
+
+    try {
+      addToast({ message: "✍️ Awaiting wallet signature to create task escrow...", type: "prompt" });
+
+      const titles = formMilestones.map((m) => m.title || "Milestone");
+      const percents = formMilestones.map((m) => Number(m.percent));
+
+      const hash = await createTask({
+        title: formTitle,
+        description: formDesc,
+        rewardQi: rewardNum,
+        milestoneTitles: titles,
+        milestonePercents: percents,
+      });
+
+      addToast({
+        message: "✓ Task Escrow created & locked on Quai Cyprus-1!",
+        type: "success",
+        txHash: hash,
+      });
+
+      // Add to local custom tasks
+      const newTask = {
+        id: `created-${Date.now()}`,
+        title: formTitle,
+        description: formDesc || "Custom milestone task escrow created on Quai Network.",
+        reward: rewardNum,
+        type: formType,
+        difficulty: formDifficulty,
+        creator: { address: `${account.slice(0, 6)}...${account.slice(-4)}`, initial: "YOU" },
+        deadline: "Flexible",
+        orderId: hash.slice(0, 8),
+        contractAddress: CONTRACT_ADDRESSES.MilestoneEscrow,
+        milestones: formMilestones.map((m) => ({
+          title: m.title,
+          amount: Math.round((rewardNum * m.percent) / 100),
+        })),
+      };
+
+      setCustomTasks((prev) => [newTask, ...prev]);
+      setIsModalOpen(false);
+
+      // Reset form
+      setFormTitle("");
+      setFormDesc("");
+      setFormRewardQi("500");
+    } catch (err) {
+      addToast({ message: `⚠️ Task Creation Failed: ${err.message}`, type: "error" });
+    }
+  };
+
   return (
     <div className={styles.layoutContainer}>
       <Sidebar mode="individual" />
@@ -142,9 +288,13 @@ export default function TasksPage() {
             </p>
           </div>
 
-          <Link href="/order/create" className="btn btn-primary" style={{ whiteSpace: "nowrap" }}>
+          <button
+            className="btn btn-primary"
+            style={{ whiteSpace: "nowrap" }}
+            onClick={() => setIsModalOpen(true)}
+          >
             + Create Task Escrow
-          </Link>
+          </button>
         </div>
 
         {/* Stats Banner */}
@@ -192,7 +342,7 @@ export default function TasksPage() {
             </button>
             <button
               className={`${styles.filterTab} ${activeTab === "milestone" ? styles.filterTabActive : ""}`}
-              onClick={() => setActiveTab("milestone")}
+              onClick={() => setActiveTab("all")}
             >
               🎯 Milestone Escrows
             </button>
@@ -323,6 +473,217 @@ export default function TasksPage() {
           </div>
         )}
       </main>
+
+      {/* POP-UP MODAL FORM FOR TASK ESCROW CREATION */}
+      {isModalOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeBtn} onClick={() => setIsModalOpen(false)}>
+              ✕
+            </button>
+
+            <div className={styles.modalHeader}>
+              <span className={styles.modalBadge}>⚡ MilestoneEscrow.sol</span>
+              <h2 className={styles.modalTitle}>Create Task Escrow</h2>
+              <p className={styles.modalSub}>
+                Post a milestone task or bounty with locked Quai Network escrows. Funds unfreeze tranche-by-tranche as deliverables are verified.
+              </p>
+            </div>
+
+            <form onSubmit={handleFormSubmit} className={styles.modalForm}>
+              {/* Form Presets */}
+              <div className={styles.presetBar}>
+                <span className={styles.presetLabel}>Quick Presets:</span>
+                <button type="button" className={styles.presetBtn} onClick={() => applyPreset("single")}>
+                  ⚡ Single Bounty (100%)
+                </button>
+                <button type="button" className={styles.presetBtn} onClick={() => applyPreset("two-phase")}>
+                  🎯 50% / 50% Two-Phase
+                </button>
+                <button type="button" className={styles.presetBtn} onClick={() => applyPreset("three-phase")}>
+                  🎯 40% / 30% / 30% Three-Phase
+                </button>
+              </div>
+
+              {/* Task Title */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Task Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Audit MoneePay Smart Contract (Solidity)"
+                  className={styles.formInput}
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Description & Scope of Work</label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe task scope, key deliverables, acceptance criteria, and technical stack requirements..."
+                  className={styles.formTextarea}
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                />
+              </div>
+
+              {/* Type & Difficulty Row */}
+              <div className={styles.formRow}>
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Escrow Structure</label>
+                  <select
+                    className={styles.formSelect}
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                  >
+                    <option value="milestone">🎯 Milestone Tranches</option>
+                    <option value="bounty">⚡ Single Bounty Payout</option>
+                  </select>
+                </div>
+
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Difficulty Level</label>
+                  <select
+                    className={styles.formSelect}
+                    value={formDifficulty}
+                    onChange={(e) => setFormDifficulty(e.target.value)}
+                  >
+                    <option value="easy">Easy (Quick Task)</option>
+                    <option value="medium">Medium (Standard Work)</option>
+                    <option value="hard">Hard (Complex Audit/Code)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Deposit Reward Amount */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Total Escrow Reward Deposit (Qi) *</label>
+                <div className={styles.currencyInputWrapper}>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="500"
+                    className={styles.formInput}
+                    value={formRewardQi}
+                    onChange={(e) => setFormRewardQi(e.target.value)}
+                    required
+                  />
+                  <span className={styles.currencySuffix}>Qi</span>
+                </div>
+                <span className={styles.inputHelp}>
+                  Native Qi will be wrapped to WQI on-chain upon deposit to secure milestone tranches.
+                </span>
+              </div>
+
+              {/* Milestone Tranche Allocation Builder */}
+              <div className={styles.trancheSection}>
+                <div className={styles.trancheHeader}>
+                  <div>
+                    <h4 className={styles.trancheTitle}>Milestone Tranche Allocations</h4>
+                    <span className={styles.trancheSub}>
+                      Smart contract requires milestone percentages to sum to exactly 100%.
+                    </span>
+                  </div>
+
+                  <div className={`${styles.percentSumBadge} ${isPercentValid ? styles.sumValid : styles.sumInvalid}`}>
+                    Total: {totalPercent}% / 100%
+                  </div>
+                </div>
+
+                <div className={styles.trancheList}>
+                  {formMilestones.map((m, idx) => {
+                    const trancheAmountQi = Math.round(((parseFloat(formRewardQi) || 0) * (m.percent || 0)) / 100);
+                    return (
+                      <div key={idx} className={styles.trancheRow}>
+                        <span className={styles.trancheIndex}>M{idx + 1}</span>
+                        <input
+                          type="text"
+                          placeholder={`Milestone ${idx + 1} Title`}
+                          className={styles.trancheTitleInput}
+                          value={m.title}
+                          onChange={(e) => handleMilestoneChange(idx, "title", e.target.value)}
+                          required
+                        />
+
+                        <div className={styles.percentInputWrapper}>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            placeholder="%"
+                            className={styles.tranchePercentInput}
+                            value={m.percent}
+                            onChange={(e) => handleMilestoneChange(idx, "percent", e.target.value)}
+                            required
+                          />
+                          <span className={styles.percentSymbol}>%</span>
+                        </div>
+
+                        <span className={styles.trancheCalcAmount}>
+                          {trancheAmountQi.toLocaleString()} Qi
+                        </span>
+
+                        {formMilestones.length > 1 && (
+                          <button
+                            type="button"
+                            className={styles.removeTrancheBtn}
+                            onClick={() => handleRemoveMilestone(idx)}
+                            title="Remove Tranche"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.addTrancheBtn}
+                  onClick={handleAddMilestone}
+                >
+                  + Add Milestone Tranche
+                </button>
+              </div>
+
+              {/* Smart Contract Notice Box */}
+              <div className={styles.contractNotice}>
+                <div className={styles.noticeIcon}>🔒</div>
+                <div>
+                  <div className={styles.noticeTitle}>Quai Cyprus-1 Contract Verification</div>
+                  <div className={styles.noticeText}>
+                    Deposit will trigger <code>MilestoneEscrow.createTask(titles[], percents[])</code> at contract address <code>{CONTRACT_ADDRESSES.MilestoneEscrow.slice(0, 10)}...</code>.
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className="btn btn-outlined"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={contractLoading || !isPercentValid}
+                  style={{ minWidth: "220px", justifyContent: "center" }}
+                >
+                  {contractLoading ? "✍️ Signing Escrow Deposit..." : `Deposit & Lock (${formRewardQi} Qi)`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
