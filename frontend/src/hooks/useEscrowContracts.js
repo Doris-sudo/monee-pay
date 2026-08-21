@@ -17,30 +17,37 @@ export const CONTRACT_ADDRESSES = {
   Arbitrator: "0x007abf8E01568a43499A1Ec754D0eD218d7c4074",
 };
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 export function useEscrowContracts() {
   const { account, isConnected } = useWallet();
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState(null);
   const [error, setError] = useState(null);
 
-  // Helper to get signer contract instance
+  // Helper to get signer contract instance securely
   const getSignerContract = useCallback(async (contractAddress, abi) => {
-    if (typeof window === "undefined") throw new Error("Window not available");
+    if (typeof window === "undefined") throw new Error("Window context not available.");
     const pelagus = window.pelagus || window.ethereum;
-    if (!pelagus) throw new Error("Pelagus wallet extension not installed.");
+    if (!pelagus) throw new Error("Pelagus Wallet extension not installed.");
     const browserProvider = new quais.BrowserProvider(pelagus);
     const signer = await browserProvider.getSigner();
     return new quais.Contract(contractAddress, abi, signer);
   }, []);
 
   // ==========================================
-  // ISSUE #25: MilestoneEscrow Methods
+  // MilestoneEscrow Security Hardened Methods
   // ==========================================
 
   const createTask = async ({ title, description, rewardQi, trancheBpsArray, milestoneTitles, milestonePercents }) => {
     setLoading(true);
     setError(null);
     try {
+      const rewardNum = parseFloat(rewardQi);
+      if (isNaN(rewardNum) || rewardNum <= 0) {
+        throw new Error("Reward amount must be a positive number in Qi.");
+      }
+
       const titles = milestoneTitles || (title ? [title] : ["Delivery Milestone"]);
       const percents = milestonePercents || (trancheBpsArray ? trancheBpsArray.map((b) => b / 100) : [100]);
 
@@ -50,7 +57,7 @@ export function useEscrowContracts() {
       }
 
       const contract = await getSignerContract(CONTRACT_ADDRESSES.MilestoneEscrow, MilestoneEscrowArtifact.abi || MilestoneEscrowArtifact);
-      const valueWei = quais.parseEther(rewardQi.toString());
+      const valueWei = quais.parseEther(rewardNum.toString());
 
       const tx = await contract.createTask(titles, percents, { value: valueWei });
       setTxHash(tx.hash);
@@ -69,11 +76,15 @@ export function useEscrowContracts() {
     setLoading(true);
     setError(null);
     try {
-      if (!quais.isAddress(solverAddress)) {
+      if (!solverAddress || !quais.isAddress(solverAddress)) {
         throw new Error("Invalid solver wallet address.");
       }
-      const contract = await getSignerContract(CONTRACT_ADDRESSES.MilestoneEscrow, MilestoneEscrowArtifact.abi || MilestoneEscrowArtifact);
       const checksummed = quais.getAddress(solverAddress);
+      if (checksummed === ZERO_ADDRESS) {
+        throw new Error("Cannot assign zero address as task solver.");
+      }
+
+      const contract = await getSignerContract(CONTRACT_ADDRESSES.MilestoneEscrow, MilestoneEscrowArtifact.abi || MilestoneEscrowArtifact);
       const tx = await contract.assignSolver(taskId, checksummed);
       setTxHash(tx.hash);
       await tx.wait();
@@ -110,7 +121,7 @@ export function useEscrowContracts() {
     setError(null);
     try {
       const contract = await getSignerContract(CONTRACT_ADDRESSES.MilestoneEscrow, MilestoneEscrowArtifact.abi || MilestoneEscrowArtifact);
-      const tx = await contract.openDispute(taskId, reason);
+      const tx = await contract.openDispute(taskId, reason || "Task milestone dispute opened.");
       setTxHash(tx.hash);
       await tx.wait();
       setLoading(false);
@@ -142,17 +153,22 @@ export function useEscrowContracts() {
   };
 
   // ==========================================
-  // ISSUE #26: ProductEscrow Methods
+  // ProductEscrow Security Hardened Methods
   // ==========================================
 
   const createOrder = async ({ itemTitle, title, description, priceQi, deliveryDeadlineSeconds, deadlineDays }) => {
     setLoading(true);
     setError(null);
     try {
+      const priceNum = parseFloat(priceQi);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        throw new Error("Product price must be a positive number in Qi.");
+      }
+
       const contract = await getSignerContract(CONTRACT_ADDRESSES.ProductEscrow, ProductEscrowArtifact.abi || ProductEscrowArtifact);
-      const priceWei = quais.parseEther(priceQi.toString());
-      const orderTitle = title || itemTitle || "Product Listing";
-      const orderDesc = description || "P2P Product Escrow Listing on Quai Network.";
+      const priceWei = quais.parseEther(priceNum.toString());
+      const orderTitle = (title || itemTitle || "Product Listing").trim();
+      const orderDesc = (description || "P2P Product Escrow Listing on Quai Network.").trim();
       const days = deadlineDays || (deliveryDeadlineSeconds ? Math.ceil(deliveryDeadlineSeconds / 86400) : 3);
 
       const tx = await contract.createOrder(orderTitle, orderDesc, priceWei, days);
@@ -172,8 +188,13 @@ export function useEscrowContracts() {
     setLoading(true);
     setError(null);
     try {
+      const priceNum = parseFloat(priceQi);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        throw new Error("Escrow deposit price must be a positive number in Qi.");
+      }
+
       const contract = await getSignerContract(CONTRACT_ADDRESSES.ProductEscrow, ProductEscrowArtifact.abi || ProductEscrowArtifact);
-      const priceWei = quais.parseEther(priceQi.toString());
+      const priceWei = quais.parseEther(priceNum.toString());
 
       const tx = await contract.depositEscrow(orderId, { value: priceWei });
       setTxHash(tx.hash);
@@ -229,7 +250,7 @@ export function useEscrowContracts() {
     setError(null);
     try {
       const contract = await getSignerContract(CONTRACT_ADDRESSES.ProductEscrow, ProductEscrowArtifact.abi || ProductEscrowArtifact);
-      const tx = await contract.openDispute(orderId, reason);
+      const tx = await contract.openDispute(orderId, reason || "Product delivery dispute opened.");
       setTxHash(tx.hash);
       await tx.wait();
       setLoading(false);
@@ -243,13 +264,18 @@ export function useEscrowContracts() {
   };
 
   // ==========================================
-  // ISSUE #30: Dispute Resolution & Arbitration Methods
+  // Dispute Resolution & Arbitration Methods
   // ==========================================
 
   const resolveDispute = async (escrowType, id, splitPercent) => {
     setLoading(true);
     setError(null);
     try {
+      const percentNum = Number(splitPercent);
+      if (isNaN(percentNum) || percentNum < 0 || percentNum > 100) {
+        throw new Error("Dispute settlement split percentage must be between 0 and 100.");
+      }
+
       const contractAddress = escrowType === "product"
         ? CONTRACT_ADDRESSES.ProductEscrow
         : CONTRACT_ADDRESSES.MilestoneEscrow;
@@ -259,7 +285,7 @@ export function useEscrowContracts() {
 
       const contract = await getSignerContract(contractAddress, artifact.abi || artifact);
       const tx = contract.resolveDispute
-        ? await contract.resolveDispute(id, splitPercent)
+        ? await contract.resolveDispute(id, percentNum)
         : await contract.confirmDelivery(id);
       setTxHash(tx.hash);
       await tx.wait();
@@ -277,6 +303,14 @@ export function useEscrowContracts() {
     setLoading(true);
     setError(null);
     try {
+      if (!newArbitratorAddress || !quais.isAddress(newArbitratorAddress)) {
+        throw new Error("Invalid new arbitrator wallet address.");
+      }
+      const checksummed = quais.getAddress(newArbitratorAddress);
+      if (checksummed === ZERO_ADDRESS) {
+        throw new Error("Cannot transfer arbitrator role to zero address.");
+      }
+
       const contractAddress = escrowType === "product"
         ? CONTRACT_ADDRESSES.ProductEscrow
         : CONTRACT_ADDRESSES.MilestoneEscrow;
@@ -285,7 +319,6 @@ export function useEscrowContracts() {
         : MilestoneEscrowArtifact;
 
       const contract = await getSignerContract(contractAddress, artifact.abi || artifact);
-      const checksummed = quais.getAddress(newArbitratorAddress);
       const tx = contract.transferArbitrator
         ? await contract.transferArbitrator(checksummed)
         : await contract.grantAdmin(checksummed);
@@ -302,19 +335,40 @@ export function useEscrowContracts() {
   };
 
   // ==========================================
-  // ISSUE #27: BatchPayroll Methods & CSV Parser
+  // BatchPayroll Methods & CSV Parser
   // ==========================================
 
   const disburseBatch = async (recipients, amountsQi) => {
     setLoading(true);
     setError(null);
     try {
+      if (!recipients || recipients.length === 0) {
+        throw new Error("Payroll batch recipients list cannot be empty.");
+      }
       if (recipients.length !== amountsQi.length) {
         throw new Error("Recipients count must match amounts count.");
       }
 
-      const checksummedRecipients = recipients.map((r) => quais.getAddress(r.trim()));
-      const amountsWei = amountsQi.map((a) => quais.parseEther(a.toString()));
+      const checksummedRecipients = recipients.map((r, idx) => {
+        const addr = r ? r.trim() : "";
+        if (!quais.isAddress(addr)) {
+          throw new Error(`Invalid wallet address at recipient index ${idx + 1}: '${r}'`);
+        }
+        const check = quais.getAddress(addr);
+        if (check === ZERO_ADDRESS) {
+          throw new Error(`Zero address not allowed in payroll batch (Index ${idx + 1}).`);
+        }
+        return check;
+      });
+
+      const amountsWei = amountsQi.map((a, idx) => {
+        const val = parseFloat(a);
+        if (isNaN(val) || val <= 0) {
+          throw new Error(`Invalid payroll amount at recipient index ${idx + 1}: '${a}'`);
+        }
+        return quais.parseEther(val.toString());
+      });
+
       const totalWei = amountsWei.reduce((sum, val) => sum + val, 0n);
 
       const contract = await getSignerContract(CONTRACT_ADDRESSES.BatchPayroll, BatchPayrollArtifact.abi || BatchPayrollArtifact);
@@ -332,6 +386,7 @@ export function useEscrowContracts() {
   };
 
   const parsePayrollCSV = (csvContent) => {
+    if (!csvContent) return { records: [], errors: ["CSV file is empty."] };
     const lines = csvContent.split("\n").filter((l) => l.trim() !== "");
     const records = [];
     const errors = [];
@@ -352,10 +407,15 @@ export function useEscrowContracts() {
       } else if (isNaN(amountNum) || amountNum <= 0) {
         errors.push(`Line ${index + 1}: Invalid amount '${amountStr}'`);
       } else {
-        records.push({
-          address: quais.getAddress(addr),
-          amount: amountNum,
-        });
+        const checksummed = quais.getAddress(addr);
+        if (checksummed === ZERO_ADDRESS) {
+          errors.push(`Line ${index + 1}: Zero address not permitted.`);
+        } else {
+          records.push({
+            address: checksummed,
+            amount: amountNum,
+          });
+        }
       }
     });
 
@@ -366,8 +426,16 @@ export function useEscrowContracts() {
     setLoading(true);
     setError(null);
     try {
+      if (!adminAddress || !quais.isAddress(adminAddress)) {
+        throw new Error("Invalid admin address.");
+      }
+      const checksummed = quais.getAddress(adminAddress);
+      if (checksummed === ZERO_ADDRESS) {
+        throw new Error("Cannot grant admin privileges to zero address.");
+      }
+
       const contract = await getSignerContract(CONTRACT_ADDRESSES.BatchPayroll, BatchPayrollArtifact.abi || BatchPayrollArtifact);
-      const tx = await contract.grantAdmin(quais.getAddress(adminAddress));
+      const tx = await contract.grantAdmin(checksummed);
       setTxHash(tx.hash);
       await tx.wait();
       setLoading(false);
@@ -384,8 +452,13 @@ export function useEscrowContracts() {
     setLoading(true);
     setError(null);
     try {
+      if (!adminAddress || !quais.isAddress(adminAddress)) {
+        throw new Error("Invalid admin address.");
+      }
+      const checksummed = quais.getAddress(adminAddress);
+
       const contract = await getSignerContract(CONTRACT_ADDRESSES.BatchPayroll, BatchPayrollArtifact.abi || BatchPayrollArtifact);
-      const tx = await contract.revokeAdmin(quais.getAddress(adminAddress));
+      const tx = await contract.revokeAdmin(checksummed);
       setTxHash(tx.hash);
       await tx.wait();
       setLoading(false);

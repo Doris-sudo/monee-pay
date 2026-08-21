@@ -413,7 +413,7 @@ export default function OrderPage({ params }) {
                   <h3 style={{ color: "#10B981" }}>Escrow Deposit Successful</h3>
                   {txHash && (
                     <p style={{ fontSize: "0.85rem", wordBreak: "break-all" }}>
-                      Tx Hash: <a href={`https://orchard.quaiscan.io/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#00D4AA" }}>{txHash}</a>
+                      Tx Hash: <a href={`https://orchard.quaiscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "#00D4AA" }}>{txHash}</a>
                     </p>
                   )}
                   <button className="btn btn-outlined" onClick={() => setViewMode("management")} style={{ marginTop: "12px" }}>
