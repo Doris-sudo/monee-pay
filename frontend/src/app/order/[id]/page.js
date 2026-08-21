@@ -71,12 +71,21 @@ export default function OrderPage({ params }) {
     return `${d}d ${h}h ${m}m ${s}s`;
   };
 
+  const isBuyer = account && buyer && account.toLowerCase() === buyer.toLowerCase();
+  const isSeller = account && seller && account.toLowerCase() === seller.toLowerCase();
+
   // Action: Confirm Delivery & Release Escrow (#26)
   const handleReleasePayment = async () => {
+    if (!isConnected) {
+      showToast("Please connect buyer wallet to confirm delivery.");
+      await connectWallet();
+      return;
+    }
+    if (account && buyer && !isBuyer) {
+      showToast(`Unauthorized: Connected wallet (${account.slice(0, 6)}...${account.slice(-4)}) is not the designated Buyer (${buyer.slice(0, 6)}...${buyer.slice(-4)}).`);
+      return;
+    }
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
       const hash = await confirmDelivery(orderId);
       setTxHash(hash);
       setOrderStatus("completed");
@@ -93,12 +102,18 @@ export default function OrderPage({ params }) {
 
   // Action: Approve Current Milestone (#25)
   const handleApproveMilestone = async () => {
+    if (!isConnected) {
+      showToast("Please connect buyer wallet to approve milestone tranche.");
+      await connectWallet();
+      return;
+    }
+    if (account && buyer && !isBuyer) {
+      showToast(`Unauthorized: Only the Buyer (${buyer.slice(0, 6)}...${buyer.slice(-4)}) can approve milestone payouts.`);
+      return;
+    }
     const activeIdx = milestones.findIndex((m) => m.status === "active");
     if (activeIdx !== -1) {
       try {
-        if (!isConnected) {
-          await connectWallet();
-        }
         const hash = await approveMilestone(orderId, activeIdx);
         setTxHash(hash);
         const updated = [...milestones];
@@ -287,13 +302,26 @@ export default function OrderPage({ params }) {
             {/* Status Overview Banner */}
             <div className={styles.statusBanner}>
               <div className={styles.statusBadgeCol}>
-                <span className={styles.labelMuted}>Escrow Lock Status</span>
-                <span className={`${styles.statusPill} ${styles["status_" + orderStatus]}`}>
-                  {orderStatus === "completed" && "Settled & Released"}
-                  {orderStatus === "disputed" && "Frozen (In Dispute)"}
-                  {orderStatus === "milestone" && "Active Escrow Lock"}
-                  {orderStatus === "funded" && "Funded in WQI"}
-                </span>
+                <span className={styles.labelMuted}>Escrow Lock & Authorization Status</span>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <span className={`${styles.statusPill} ${styles["status_" + orderStatus]}`}>
+                    {orderStatus === "completed" && "Settled & Released"}
+                    {orderStatus === "disputed" && "Frozen (In Dispute)"}
+                    {orderStatus === "milestone" && "Active Escrow Lock"}
+                    {orderStatus === "funded" && "Funded in WQI"}
+                  </span>
+                  <span style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: "12px",
+                    background: isBuyer ? "rgba(0, 212, 170, 0.12)" : isSeller ? "rgba(59, 130, 246, 0.12)" : isArbitrator ? "rgba(168, 85, 247, 0.12)" : "rgba(255, 255, 255, 0.06)",
+                    color: isBuyer ? "#00D4AA" : isSeller ? "#60A5FA" : isArbitrator ? "#C084FC" : "#94A3B8",
+                    border: "1px solid rgba(255, 255, 255, 0.1)"
+                  }}>
+                    {isBuyer ? "Buyer Authorized" : isSeller ? "Seller Authorized" : isArbitrator ? "Arbitrator Authorized" : "Observer Mode"}
+                  </span>
+                </div>
               </div>
 
               <div className={styles.statusMetricCol}>
