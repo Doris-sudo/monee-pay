@@ -588,27 +588,27 @@ export default function TasksPage() {
               </div>
 
               {/* Milestone Tranches Section */}
-              <div className={styles.milestoneSection}>
-                <div className={styles.milestoneHeader}>
+              <div className={styles.trancheSection}>
+                <div className={styles.trancheHeader}>
                   <div>
-                    <h4 className={styles.milestoneTitle}>Milestone Tranches Breakdown</h4>
-                    <p className={styles.milestoneSub}>Percentages must sum to exactly 100%.</p>
+                    <h4 className={styles.trancheTitle}>Milestone Tranches Breakdown</h4>
+                    <p className={styles.trancheSub}>Percentages must sum to exactly 100%.</p>
                   </div>
-                  <span className={`${styles.percentSumBadge} ${isPercentValid ? styles.percentValid : styles.percentInvalid}`}>
+                  <span className={`${styles.percentSumBadge} ${isPercentValid ? styles.sumValid : styles.sumInvalid}`}>
                     Total: {totalPercent}% / 100%
                   </span>
                 </div>
 
-                <div className={styles.milestoneList}>
+                <div className={styles.trancheList}>
                   {formMilestones.map((m, idx) => {
                     const milestoneQi = Math.round(((parseFloat(formRewardQi) || 0) * (m.percent || 0)) / 100);
                     return (
-                      <div key={idx} className={styles.milestoneRow}>
-                        <span className={styles.milestoneIndex}>M{idx + 1}</span>
+                      <div key={idx} className={styles.trancheRow}>
+                        <span className={styles.trancheIndex}>M{idx + 1}</span>
                         <input
                           type="text"
                           placeholder={`Phase ${idx + 1} Title`}
-                          className={styles.milestoneTitleInput}
+                          className={styles.trancheTitleInput}
                           value={m.title}
                           onChange={(e) => handleMilestoneChange(idx, "title", e.target.value)}
                           required
@@ -618,19 +618,20 @@ export default function TasksPage() {
                             type="number"
                             min="0"
                             max="100"
-                            className={styles.percentInput}
+                            className={styles.tranchePercentInput}
                             value={m.percent}
                             onChange={(e) => handleMilestoneChange(idx, "percent", e.target.value)}
                             required
                           />
                           <span className={styles.percentSymbol}>%</span>
                         </div>
-                        <span className={styles.milestoneQiVal}>{milestoneQi.toLocaleString()} Qi</span>
+                        <span className={styles.trancheCalcAmount}>{milestoneQi.toLocaleString()} Qi</span>
                         {formMilestones.length > 1 && (
                           <button
                             type="button"
-                            className={styles.removeMilestoneBtn}
+                            className={styles.removeTrancheBtn}
                             onClick={() => handleRemoveMilestone(idx)}
+                            title="Remove Tranche"
                           >
                             ✕
                           </button>
@@ -642,7 +643,7 @@ export default function TasksPage() {
 
                 <button
                   type="button"
-                  className={styles.addMilestoneBtn}
+                  className={styles.addTrancheBtn}
                   onClick={handleAddMilestone}
                 >
                   + Add Tranche
