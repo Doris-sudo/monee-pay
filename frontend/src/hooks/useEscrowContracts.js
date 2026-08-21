@@ -145,14 +145,17 @@ export function useEscrowContracts() {
   // ISSUE #26: ProductEscrow Methods
   // ==========================================
 
-  const createOrder = async ({ itemTitle, priceQi, deliveryDeadlineSeconds }) => {
+  const createOrder = async ({ itemTitle, title, description, priceQi, deliveryDeadlineSeconds, deadlineDays }) => {
     setLoading(true);
     setError(null);
     try {
       const contract = await getSignerContract(CONTRACT_ADDRESSES.ProductEscrow, ProductEscrowArtifact.abi || ProductEscrowArtifact);
       const priceWei = quais.parseEther(priceQi.toString());
+      const orderTitle = title || itemTitle || "Product Listing";
+      const orderDesc = description || "P2P Product Escrow Listing on Quai Network.";
+      const days = deadlineDays || (deliveryDeadlineSeconds ? Math.ceil(deliveryDeadlineSeconds / 86400) : 3);
 
-      const tx = await contract.createOrder(itemTitle, priceWei, deliveryDeadlineSeconds);
+      const tx = await contract.createOrder(orderTitle, orderDesc, priceWei, days);
       setTxHash(tx.hash);
       await tx.wait();
       setLoading(false);
