@@ -1,6 +1,6 @@
 /* =============================================
    MoneePay — Create Escrow Contract Page
-   Ultra-Premium Web3 Styling
+   Ultra-Premium Enterprise Web3 Styling
    ============================================= */
 
 .layoutContainer {
@@ -36,11 +36,11 @@
   background: rgba(0, 180, 216, 0.1);
   border: 1px solid rgba(0, 180, 216, 0.25);
   border-radius: var(--radius-full);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--accent-cyan);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   width: fit-content;
 }
 
@@ -140,8 +140,16 @@
   margin-bottom: 4px;
 }
 
-.typeIcon {
-  font-size: 1.5rem;
+.typeBadgeTag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 180, 216, 0.15);
+  border: 1px solid rgba(0, 180, 216, 0.3);
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .radioDot {
@@ -419,8 +427,12 @@
   border-radius: var(--radius-md);
 }
 
-.noticeIcon {
-  font-size: 1.5rem;
+.noticeShieldIcon {
+  color: var(--accent-teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .noticeTitle {
@@ -454,15 +466,13 @@
   animation: cardEntrance 0.5s ease-out;
 }
 
-.successIcon {
+.successCheckIcon {
   width: 64px;
   height: 64px;
   border-radius: 50%;
   background: rgba(0, 212, 170, 0.15);
   border: 1px solid rgba(0, 212, 170, 0.3);
   color: var(--accent-teal);
-  font-size: 1.8rem;
-  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
