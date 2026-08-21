@@ -59,7 +59,7 @@ export default function WalletModal({ isOpen, onClose, onConnect }) {
             <div>
               <span style={{ display: "block", fontWeight: 600 }}>Pelagus Extension</span>
               <span style={{ fontSize: "0.72rem", color: hasPelagus ? "#10B981" : "#F59E0B" }}>
-                {hasPelagus ? "✓ Extension Detected" : "⚠️ Not Installed (Click to Install)"}
+                {hasPelagus ? "Extension Detected" : "Not Installed (Click to Install)"}
               </span>
             </div>
           </div>

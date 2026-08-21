@@ -81,11 +81,6 @@ export function ToastProvider({ children }) {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <span style={{ fontWeight: 600 }}>
-                {toast.type === "prompt" && "✍️ "}
-                {toast.type === "broadcast" && "🚀 "}
-                {toast.type === "confirming" && "⏳ "}
-                {toast.type === "success" && "✓ "}
-                {toast.type === "error" && "⚠️ "}
                 {toast.message}
               </span>
 

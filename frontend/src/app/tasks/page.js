@@ -15,66 +15,53 @@ import styles from "./Tasks.module.css";
 const MOCK_TASKS = [
   {
     id: "task-001",
-    title: "Audit MoneePay Smart Contract (Solidity)",
-    description:
-      "Perform a full security audit of the MoneePay EVM escrow contracts on Quai Network. Deliverables include vulnerability report, gas optimization suggestions, and final sign-off.",
-    reward: 1200,
+    title: "Quai Cyprus-1 Subgraph Indexer & Analytics API",
+    description: "Build an open-source indexer node on Quai Cyprus-1 with GraphQL API endpoints for real-time escrow analytics.",
+    reward: 1500,
     type: "milestone",
-    difficulty: "hard",
-    creator: { address: "0x001c...3f47", initial: "D" },
-    deadline: "Sep 01, 2026",
-    orderId: "k2m9x4",
-    contractAddress: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
+    difficulty: "expert",
+    creator: { address: "0x001c...3f47", initial: "Q" },
+    deadline: "5 Days",
+    status: "open",
+    orderId: "a3kd82",
+    contractAddress: CONTRACT_ADDRESSES.MilestoneEscrow,
     milestones: [
-      { title: "Initial Scope & Architecture Review", amount: 400 },
-      { title: "Vulnerability Audit & Gas Analysis", amount: 400 },
-      { title: "Final Fix Verification & Sign-off", amount: 400 },
+      { title: "Phase 1: Architecture & Subgraph Manifest", amount: 600 },
+      { title: "Phase 2: Live Indexing & GraphQL Endpoints", amount: 900 },
     ],
   },
   {
     id: "task-002",
-    title: "Build React Landing Page for DeFi Protocol",
-    description:
-      "Design and code a responsive landing page with hero section, feature grid, tokenomics chart, and team section. Must use Next.js 15 and follow dark-mode fintech aesthetic.",
+    title: "Pelagus Wallet Mobile Extension Connector",
+    description: "Implement mobile deep-linking for Pelagus wallet to authorize Quai Network escrow deposits on iOS & Android.",
     reward: 800,
     type: "bounty",
     difficulty: "medium",
-    creator: { address: "0x0035...fbc6", initial: "Q" },
-    deadline: "Aug 30, 2026",
+    creator: { address: "0x0035...fbc6", initial: "P" },
+    deadline: "3 Days",
+    status: "open",
     orderId: "f7j2k9",
-    contractAddress: "0x0067f487e59f0C45922854F32B6d8deD8e820776",
-    milestones: [],
-  },
-  {
-    id: "task-003",
-    title: "Integrate Farcaster Mini App Frames & SDK v2",
-    description:
-      "Implement deep links, mobile hamburger drawer navigation, and share buttons for Farcaster protocol within MoneePay payment widgets on Quai Cyprus-1.",
-    reward: 1500,
-    type: "milestone",
-    difficulty: "medium",
-    creator: { address: "0x002a...e901", initial: "F" },
-    deadline: "Sep 10, 2026",
-    orderId: "m8b3v1",
-    contractAddress: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
+    contractAddress: CONTRACT_ADDRESSES.MilestoneEscrow,
     milestones: [
-      { title: "SDK Init & Frame Hooks", amount: 750 },
-      { title: "Mobile UI & Share Flow", amount: 750 },
+      { title: "Single Bounty Deliverable", amount: 800 },
     ],
   },
   {
-    id: "task-004",
-    title: "Solidity Gas Optimization for Batch Payroll",
-    description:
-      "Optimize batch transfer loops and packed struct storage slots in BatchPayroll.sol contract to lower Qi gas fees by at least 25%.",
-    reward: 600,
-    type: "bounty",
-    difficulty: "easy",
-    creator: { address: "0x0089...11c4", initial: "G" },
-    deadline: "Aug 28, 2026",
-    orderId: "p4t9w2",
-    contractAddress: "0x0091ab45cd67ef890a1234567890abcdef123456",
-    milestones: [],
+    id: "task-003",
+    title: "ProductEscrow & MilestoneEscrow Gas Optimization Audit",
+    description: "Perform comprehensive Yul/assembly gas optimization audit on MoneePay core escrow contracts.",
+    reward: 2000,
+    type: "milestone",
+    difficulty: "expert",
+    creator: { address: "0x000E...8fbA", initial: "S" },
+    deadline: "7 Days",
+    status: "open",
+    orderId: "k2m9x4",
+    contractAddress: CONTRACT_ADDRESSES.MilestoneEscrow,
+    milestones: [
+      { title: "Phase 1: Vulnerability & Assembly Review", amount: 800 },
+      { title: "Phase 2: Gas Report & Benchmark Tests", amount: 1200 },
+    ],
   },
 ];
 
@@ -86,12 +73,12 @@ export default function TasksPage() {
 
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState("reward-high");
 
-  // Local state for custom tasks
+  // Local state for custom created tasks
   const [customTasks, setCustomTasks] = useState([]);
 
-  // Create Escrow Modal State
+  // Create Task Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -209,27 +196,27 @@ export default function TasksPage() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) {
-      addToast({ message: "⚠️ Please enter a task title.", type: "error" });
+      addToast({ message: "Please enter a task title.", type: "error" });
       return;
     }
     const rewardNum = parseFloat(formRewardQi);
     if (isNaN(rewardNum) || rewardNum <= 0) {
-      addToast({ message: "⚠️ Please enter a valid reward deposit amount in Qi.", type: "error" });
+      addToast({ message: "Please enter a valid reward deposit amount in Qi.", type: "error" });
       return;
     }
     if (!isPercentValid) {
-      addToast({ message: `⚠️ Milestone percentages must sum to 100% (Current sum: ${totalPercent}%).`, type: "error" });
+      addToast({ message: `Milestone percentages must sum to 100% (Current sum: ${totalPercent}%).`, type: "error" });
       return;
     }
 
     if (!isConnected) {
-      addToast({ message: "✍️ Please connect your wallet to lock escrow on-chain.", type: "prompt" });
+      addToast({ message: "Please connect your wallet to lock escrow on-chain.", type: "prompt" });
       connectWallet();
       return;
     }
 
     try {
-      addToast({ message: "✍️ Awaiting wallet signature to create task escrow...", type: "prompt" });
+      addToast({ message: "Awaiting wallet signature to create task escrow...", type: "prompt" });
 
       const titles = formMilestones.map((m) => m.title || "Milestone");
       const percents = formMilestones.map((m) => Number(m.percent));
@@ -243,7 +230,7 @@ export default function TasksPage() {
       });
 
       addToast({
-        message: "✓ Task Escrow created & locked on Quai Cyprus-1!",
+        message: "Task Escrow created & locked on Quai Cyprus-1",
         type: "success",
         txHash: hash,
       });
@@ -271,7 +258,7 @@ export default function TasksPage() {
       setFormDesc("");
       setFormRewardQi("500");
     } catch (err) {
-      addToast({ message: `⚠️ Task Creation Failed: ${err.message}`, type: "error" });
+      addToast({ message: `Task Creation Failed: ${err.message}`, type: "error" });
     }
   };
 
@@ -279,12 +266,12 @@ export default function TasksPage() {
   const handleApplySubmit = (e) => {
     e.preventDefault();
     if (!applyProposal.trim()) {
-      addToast({ message: "⚠️ Please enter your proposal or execution approach.", type: "error" });
+      addToast({ message: "Please enter your proposal or execution approach.", type: "error" });
       return;
     }
 
     if (!isConnected) {
-      addToast({ message: "✍️ Please connect your wallet to submit your application.", type: "prompt" });
+      addToast({ message: "Please connect your wallet to submit your application.", type: "prompt" });
       connectWallet();
       return;
     }
@@ -316,7 +303,7 @@ export default function TasksPage() {
     setTimeout(() => {
       setIsSubmittingApply(false);
       addToast({
-        message: `✓ Application submitted for "${selectedApplyTask.title}"! Track status under Dashboard > My Applications.`,
+        message: `Application submitted for "${selectedApplyTask.title}"! Track status under Dashboard > My Applications.`,
         type: "success",
       });
       setSelectedApplyTask(null);
@@ -333,12 +320,12 @@ export default function TasksPage() {
         {/* Header Hero Section */}
         <div className={styles.headerSection}>
           <div className={styles.headerLeft}>
-            <span className={styles.badgeLabel}>⚡ Milestone & Bounty Escrow</span>
+            <span className={styles.badgeLabel}>MILESTONE & BOUNTY ESCROW ENGINE</span>
             <h1 className={styles.title}>
               Task & Bounty <span className="gradient-text">Discovery Hub</span>
             </h1>
             <p className={styles.subtitle}>
-              Earn Qi by solving bounties and delivering milestone tasks for Web3 projects on Quai Network. Guaranteed payout upon delivery approval.
+              Earn Qi by building software, running audits, or completing task bounties on Quai Network. Escrows locked on-chain in <code>MilestoneEscrow.sol</code>.
             </p>
           </div>
 
@@ -355,19 +342,19 @@ export default function TasksPage() {
         <div className={styles.statsBanner}>
           <div className={styles.statItem}>
             <div className={styles.statValue}>{totalRewardVolume.toLocaleString()} Qi</div>
-            <div className={styles.statLabel}>Total Reward Volume</div>
+            <div className={styles.statLabel}>Total Task Bounty Pool</div>
           </div>
           <div className={styles.statItem}>
-            <div className={styles.statValue}>{allTasks.length} Tasks</div>
-            <div className={styles.statLabel}>Active Bounties & Escrows</div>
+            <div className={styles.statValue}>{allTasks.length} Active</div>
+            <div className={styles.statLabel}>Open Bounties & Tasks</div>
           </div>
           <div className={styles.statItem}>
             <div className={styles.statValue}>{avgTaskReward.toLocaleString()} Qi</div>
-            <div className={styles.statLabel}>Average Task Payout</div>
+            <div className={styles.statLabel}>Average Reward Per Task</div>
           </div>
           <div className={styles.statItem}>
-            <div className={styles.statValue}>100% On-Chain</div>
-            <div className={styles.statLabel}>Smart Contract SLA</div>
+            <div className={styles.statValue}>100% Locked</div>
+            <div className={styles.statLabel}>Escrow Security SLA</div>
           </div>
         </div>
 
@@ -380,7 +367,7 @@ export default function TasksPage() {
             </svg>
             <input
               type="text"
-              placeholder="Search tasks, skills, or bounties..."
+              placeholder="Search tasks, bounties, security audits, or dev tools..."
               className={styles.searchInput}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -392,27 +379,27 @@ export default function TasksPage() {
               className={`${styles.filterTab} ${activeTab === "all" ? styles.filterTabActive : ""}`}
               onClick={() => setActiveTab("all")}
             >
-              All Tasks ({allTasks.length})
+              All Tasks
             </button>
             <button
               className={`${styles.filterTab} ${activeTab === "milestone" ? styles.filterTabActive : ""}`}
               onClick={() => setActiveTab("milestone")}
             >
-              🎯 Milestone Escrows
+              Milestone Escrows
             </button>
             <button
               className={`${styles.filterTab} ${activeTab === "bounty" ? styles.filterTabActive : ""}`}
               onClick={() => setActiveTab("bounty")}
             >
-              ⚡ Single Bounties
+              Single Bounties
             </button>
           </div>
         </div>
 
-        {/* Results Metadata Bar */}
+        {/* Results Info Bar */}
         <div className={styles.resultsInfo}>
           <span className={styles.resultCount}>
-            Showing <strong>{filteredTasks.length}</strong> of {allTasks.length} available tasks
+            Showing <strong>{filteredTasks.length}</strong> of {allTasks.length} task bounties
           </span>
 
           <select
@@ -420,100 +407,70 @@ export default function TasksPage() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
-            <option value="newest">Newest First</option>
             <option value="reward-high">Reward: High to Low</option>
             <option value="reward-low">Reward: Low to High</option>
           </select>
         </div>
 
-        {/* Indexing Smart Contract Indicator (#28) */}
+        {/* Indexing Indicator */}
         {onChainLoading && (
           <div className={styles.loadingBox}>
-            <span className={styles.loadingSpinner}>⏳</span>
             <span>Indexing live MilestoneEscrow smart contract events on Quai Cyprus-1...</span>
           </div>
         )}
 
         {/* Tasks Grid */}
-        <div className={styles.tasksList}>
+        <div className={styles.tasksGrid}>
           {filteredTasks.map((t) => (
             <div key={t.id} className={styles.taskCard}>
-              {/* Card Top Header */}
-              <div className={styles.taskHeader}>
-                <div className={styles.taskTitleGroup}>
-                  <div className={styles.taskBadges}>
-                    <span className={`${styles.typeBadge} ${t.type === "milestone" ? styles.typeMilestone : styles.typeBounty}`}>
-                      {t.type === "milestone" ? "🎯 Milestone Escrow" : "⚡ Single Bounty"}
-                    </span>
-                    <span
-                      className={`${styles.difficultyBadge} ${
-                        t.difficulty === "easy"
-                          ? styles.diffEasy
-                          : t.difficulty === "medium"
-                          ? styles.diffMedium
-                          : styles.diffHard
-                      }`}
-                    >
-                      {t.difficulty}
-                    </span>
-                  </div>
-                  <h3 className={styles.taskTitle}>{t.title}</h3>
+              <div className={styles.cardHeader}>
+                <div className={styles.typeBadgeWrapper}>
+                  <span className={styles.typeBadge}>
+                    {t.type === "milestone" ? "Milestone Escrow" : "Single Bounty"}
+                  </span>
+                  <span className={`${styles.difficultyBadge} ${styles[t.difficulty]}`}>
+                    {t.difficulty}
+                  </span>
                 </div>
 
-                <div className={styles.rewardTag}>
-                  <span className={styles.rewardLabel}>Total Reward</span>
-                  <div className={styles.rewardAmount}>
-                    {t.reward.toLocaleString()} <span className={styles.rewardCurrency}>Qi</span>
-                  </div>
+                <div className={styles.rewardBox}>
+                  <span className={styles.rewardValue}>{t.reward.toLocaleString()}</span>
+                  <span className={styles.rewardCurrency}>Qi</span>
                 </div>
               </div>
 
-              {/* Task Description */}
+              <h3 className={styles.taskTitle}>{t.title}</h3>
               <p className={styles.taskDesc}>{t.description}</p>
 
-              {/* Tranche / Milestone Pills */}
-              {t.milestones && t.milestones.length > 0 && (
-                <div className={styles.milestonePreview}>
-                  {t.milestones.map((m, idx) => (
-                    <span key={idx} className={styles.milestoneChip}>
-                      <span className={styles.milestoneChipNum}>M{idx + 1}</span>
-                      <span>{m.title}:</span>
-                      <span className={styles.milestoneChipAmount}>{m.amount} Qi</span>
-                    </span>
-                  ))}
+              {/* Milestones Schedule */}
+              <div className={styles.milestonesContainer}>
+                <div className={styles.milestonesTitle}>Tranche Schedule</div>
+                <div className={styles.trancheList}>
+                  {t.milestones &&
+                    t.milestones.map((m, idx) => (
+                      <span key={idx} className={styles.tranchePill}>
+                        M{idx + 1}: {m.amount.toLocaleString()} Qi
+                      </span>
+                    ))}
                 </div>
-              )}
+              </div>
 
-              {/* Explorer Evidence Link */}
-              {t.contractAddress && (
-                <div style={{ margin: "12px 0" }}>
-                  <ExplorerLink hash={t.contractAddress} label="MilestoneEscrow Contract Receipt" />
-                </div>
-              )}
-
-              {/* Card Footer & CTAs */}
-              <div className={styles.taskFooter}>
-                <div className={styles.taskMeta}>
-                  <div className={styles.metaItem}>
-                    <span className={styles.creatorAvatar}>{t.creator.initial}</span>
-                    <span className={styles.creatorAddr}>{t.creator.address}</span>
-                  </div>
-                  <div className={styles.escrowLockBadge}>
-                    <span className={styles.lockDot} />
-                    <span>Funds Escrowed</span>
-                  </div>
+              <div className={styles.cardFooter}>
+                <div className={styles.creatorInfo}>
+                  <span className={styles.creatorAvatar}>{t.creator.initial}</span>
+                  <span className={styles.creatorAddr}>{t.creator.address}</span>
                 </div>
 
                 <div className={styles.ctaGroup}>
                   <FarcasterShareButton
-                    text={`Check out this task bounty: "${t.title}" (${t.reward} Qi) on Quai Network! ⚡`}
-                    buttonText="Share Task"
+                    text={`Check out this task bounty: "${t.title}" (${t.reward} Qi) on Quai Network!`}
+                    buttonText="Share"
                   />
                   <button
-                    className={styles.claimBtn}
+                    className="btn btn-outlined btn-sm"
                     onClick={() => setSelectedApplyTask(t)}
                   >
-                    View Task & Apply ({t.reward.toLocaleString()} Qi) →
+                    View Task & Apply
                   </button>
                 </div>
               </div>
@@ -521,12 +478,11 @@ export default function TasksPage() {
           ))}
         </div>
 
-        {/* Empty Search/Filter State */}
+        {/* Empty State */}
         {filteredTasks.length === 0 && (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>🔍</div>
-            <h3 className={styles.emptyTitle}>No matching tasks found</h3>
-            <p className={styles.emptyDesc}>Try adjusting your search query or switching filter tabs.</p>
+            <h3>No matching task bounties found</h3>
+            <p>Try adjusting your search query or switching categories.</p>
           </div>
         )}
       </main>
@@ -540,44 +496,59 @@ export default function TasksPage() {
             </button>
 
             <div className={styles.modalHeader}>
-              <span className={styles.modalBadge}>⚡ MilestoneEscrow.sol</span>
+              <span className={styles.modalBadge}>MilestoneEscrow.sol</span>
               <h2 className={styles.modalTitle}>Create Task Escrow</h2>
               <p className={styles.modalSub}>
-                Post a milestone task or bounty with locked Quai Network escrows. Funds unfreeze tranche-by-tranche as deliverables are verified.
+                Deposit Qi collateral into smart contract. Payouts release to solver upon verified deliverable milestones.
               </p>
             </div>
 
+            {/* Presets Bar */}
+            <div className={styles.presetBar}>
+              <span className={styles.presetLabel}>Quick Presets:</span>
+              <button className={styles.presetBtn} onClick={() => applyPreset("single")}>
+                Single Bounty (100%)
+              </button>
+              <button className={styles.presetBtn} onClick={() => applyPreset("two-phase")}>
+                50% / 50% Two-Phase
+              </button>
+              <button className={styles.presetBtn} onClick={() => applyPreset("three-phase")}>
+                40% / 30% / 30% Three-Phase
+              </button>
+            </div>
+
             <form onSubmit={handleFormSubmit} className={styles.modalForm}>
-              <div className={styles.presetBar}>
-                <span className={styles.presetLabel}>Quick Presets:</span>
-                <button type="button" className={styles.presetBtn} onClick={() => applyPreset("single")}>
-                  ⚡ Single Bounty (100%)
-                </button>
-                <button type="button" className={styles.presetBtn} onClick={() => applyPreset("two-phase")}>
-                  🎯 50% / 50% Two-Phase
-                </button>
-                <button type="button" className={styles.presetBtn} onClick={() => applyPreset("three-phase")}>
-                  🎯 40% / 30% / 30% Three-Phase
-                </button>
+              <div className={styles.formRow}>
+                <div className={styles.inputGroup} style={{ flex: 1 }}>
+                  <label className={styles.label}>Task Title *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Quai Subgraph Indexer Node"
+                    className={styles.formInput}
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className={styles.inputGroup} style={{ width: "160px" }}>
+                  <label className={styles.label}>Escrow Type</label>
+                  <select
+                    className={styles.formSelect}
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                  >
+                    <option value="milestone">Milestone Tranches</option>
+                    <option value="bounty">Single Bounty Payout</option>
+                  </select>
+                </div>
               </div>
 
               <div className={styles.inputGroup}>
-                <label className={styles.label}>Task Title *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Audit MoneePay Smart Contract (Solidity)"
-                  className={styles.formInput}
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Description & Scope of Work</label>
+                <label className={styles.label}>Description & Deliverables</label>
                 <textarea
                   rows={3}
-                  placeholder="Describe task scope, key deliverables, acceptance criteria, and technical stack requirements..."
+                  placeholder="Specify clear technical requirements, acceptance criteria, and repository links..."
                   className={styles.formTextarea}
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
@@ -586,15 +557,19 @@ export default function TasksPage() {
 
               <div className={styles.formRow}>
                 <div className={styles.inputGroup} style={{ flex: 1 }}>
-                  <label className={styles.label}>Escrow Structure</label>
-                  <select
-                    className={styles.formSelect}
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value)}
-                  >
-                    <option value="milestone">🎯 Milestone Tranches</option>
-                    <option value="bounty">⚡ Single Bounty Payout</option>
-                  </select>
+                  <label className={styles.label}>Total Reward Deposit (Qi) *</label>
+                  <div className={styles.currencyInputWrapper}>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="500"
+                      className={styles.formInput}
+                      value={formRewardQi}
+                      onChange={(e) => setFormRewardQi(e.target.value)}
+                      required
+                    />
+                    <span className={styles.currencySuffix}>Qi</span>
+                  </div>
                 </div>
 
                 <div className={styles.inputGroup} style={{ flex: 1 }}>
@@ -604,86 +579,57 @@ export default function TasksPage() {
                     value={formDifficulty}
                     onChange={(e) => setFormDifficulty(e.target.value)}
                   >
-                    <option value="easy">Easy (Quick Task)</option>
-                    <option value="medium">Medium (Standard Work)</option>
-                    <option value="hard">Hard (Complex Audit/Code)</option>
+                    <option value="easy">Easy (Bounty)</option>
+                    <option value="medium">Medium (Standard)</option>
+                    <option value="expert">Expert (Audit/Core)</option>
                   </select>
                 </div>
               </div>
 
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Total Escrow Reward Deposit (Qi) *</label>
-                <div className={styles.currencyInputWrapper}>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="500"
-                    className={styles.formInput}
-                    value={formRewardQi}
-                    onChange={(e) => setFormRewardQi(e.target.value)}
-                    required
-                  />
-                  <span className={styles.currencySuffix}>Qi</span>
-                </div>
-                <span className={styles.inputHelp}>
-                  Native Qi will be wrapped to WQI on-chain upon deposit to secure milestone tranches.
-                </span>
-              </div>
-
-              <div className={styles.trancheSection}>
-                <div className={styles.trancheHeader}>
+              {/* Milestone Tranches Section */}
+              <div className={styles.milestoneSection}>
+                <div className={styles.milestoneHeader}>
                   <div>
-                    <h4 className={styles.trancheTitle}>Milestone Tranche Allocations</h4>
-                    <span className={styles.trancheSub}>
-                      Smart contract requires milestone percentages to sum to exactly 100%.
-                    </span>
+                    <h4 className={styles.milestoneTitle}>Milestone Tranches Breakdown</h4>
+                    <p className={styles.milestoneSub}>Percentages must sum to exactly 100%.</p>
                   </div>
-
-                  <div className={`${styles.percentSumBadge} ${isPercentValid ? styles.sumValid : styles.sumInvalid}`}>
+                  <span className={`${styles.percentSumBadge} ${isPercentValid ? styles.percentValid : styles.percentInvalid}`}>
                     Total: {totalPercent}% / 100%
-                  </div>
+                  </span>
                 </div>
 
-                <div className={styles.trancheList}>
+                <div className={styles.milestoneList}>
                   {formMilestones.map((m, idx) => {
-                    const trancheAmountQi = Math.round(((parseFloat(formRewardQi) || 0) * (m.percent || 0)) / 100);
+                    const milestoneQi = Math.round(((parseFloat(formRewardQi) || 0) * (m.percent || 0)) / 100);
                     return (
-                      <div key={idx} className={styles.trancheRow}>
-                        <span className={styles.trancheIndex}>M{idx + 1}</span>
+                      <div key={idx} className={styles.milestoneRow}>
+                        <span className={styles.milestoneIndex}>M{idx + 1}</span>
                         <input
                           type="text"
-                          placeholder={`Milestone ${idx + 1} Title`}
-                          className={styles.trancheTitleInput}
+                          placeholder={`Phase ${idx + 1} Title`}
+                          className={styles.milestoneTitleInput}
                           value={m.title}
                           onChange={(e) => handleMilestoneChange(idx, "title", e.target.value)}
                           required
                         />
-
                         <div className={styles.percentInputWrapper}>
                           <input
                             type="number"
-                            min="1"
+                            min="0"
                             max="100"
-                            placeholder="%"
-                            className={styles.tranchePercentInput}
+                            className={styles.percentInput}
                             value={m.percent}
                             onChange={(e) => handleMilestoneChange(idx, "percent", e.target.value)}
                             required
                           />
                           <span className={styles.percentSymbol}>%</span>
                         </div>
-
-                        <span className={styles.trancheCalcAmount}>
-                          {trancheAmountQi.toLocaleString()} Qi
-                        </span>
-
+                        <span className={styles.milestoneQiVal}>{milestoneQi.toLocaleString()} Qi</span>
                         {formMilestones.length > 1 && (
                           <button
                             type="button"
-                            className={styles.removeTrancheBtn}
+                            className={styles.removeMilestoneBtn}
                             onClick={() => handleRemoveMilestone(idx)}
-                            title="Remove Tranche"
                           >
                             ✕
                           </button>
@@ -695,23 +641,29 @@ export default function TasksPage() {
 
                 <button
                   type="button"
-                  className={styles.addTrancheBtn}
+                  className={styles.addMilestoneBtn}
                   onClick={handleAddMilestone}
                 >
-                  + Add Milestone Tranche
+                  + Add Tranche
                 </button>
               </div>
 
+              {/* Contract Verification Notice */}
               <div className={styles.contractNotice}>
-                <div className={styles.noticeIcon}>🔒</div>
+                <div className={styles.noticeShieldIcon}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
                 <div>
-                  <div className={styles.noticeTitle}>Quai Cyprus-1 Contract Verification</div>
+                  <div className={styles.noticeTitle}>MilestoneEscrow.sol Verification</div>
                   <div className={styles.noticeText}>
-                    Deposit will trigger <code>MilestoneEscrow.createTask(titles[], percents[])</code> at contract address <code>{CONTRACT_ADDRESSES.MilestoneEscrow.slice(0, 10)}...</code>.
+                    Triggers <code>MilestoneEscrow.createTask(titles[], percents[])</code> on Quai Cyprus-1.
                   </div>
                 </div>
               </div>
 
+              {/* Modal Actions */}
               <div className={styles.modalActions}>
                 <button
                   type="button"
@@ -724,9 +676,9 @@ export default function TasksPage() {
                   type="submit"
                   className="btn btn-primary"
                   disabled={contractLoading || !isPercentValid}
-                  style={{ minWidth: "220px", justifyContent: "center" }}
+                  style={{ minWidth: "200px", justifyContent: "center" }}
                 >
-                  {contractLoading ? "✍️ Signing Escrow Deposit..." : `Deposit & Lock (${formRewardQi} Qi)`}
+                  {contractLoading ? "Signing Escrow Deposit..." : `Deposit & Lock (${formRewardQi} Qi)`}
                 </button>
               </div>
             </form>
@@ -734,7 +686,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* POP-UP MODAL 2: VIEW TASK & SUBMIT APPLICATION */}
+      {/* POP-UP MODAL 2: VIEW TASK & APPLY FORM */}
       {selectedApplyTask && (
         <div className={styles.modalOverlay} onClick={() => setSelectedApplyTask(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -742,115 +694,66 @@ export default function TasksPage() {
               ✕
             </button>
 
-            {/* Header */}
             <div className={styles.modalHeader}>
-              <div className={styles.taskBadges} style={{ marginBottom: "10px" }}>
-                <span className={`${styles.typeBadge} ${selectedApplyTask.type === "milestone" ? styles.typeMilestone : styles.typeBounty}`}>
-                  {selectedApplyTask.type === "milestone" ? "🎯 Milestone Escrow" : "⚡ Single Bounty"}
+              <div className={styles.cardBadges} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <span className={styles.typeBadge} style={{ position: "static" }}>
+                  {selectedApplyTask.type === "milestone" ? "Milestone Escrow" : "Single Bounty"}
                 </span>
-                <span
-                  className={`${styles.difficultyBadge} ${
-                    selectedApplyTask.difficulty === "easy"
-                      ? styles.diffEasy
-                      : selectedApplyTask.difficulty === "medium"
-                      ? styles.diffMedium
-                      : styles.diffHard
-                  }`}
-                >
+                <span className={`${styles.difficultyBadge} ${styles[selectedApplyTask.difficulty]}`} style={{ position: "static" }}>
                   {selectedApplyTask.difficulty}
-                </span>
-                <span className={styles.escrowLockBadge}>
-                  <span className={styles.lockDot} /> Escrow Funds Locked
                 </span>
               </div>
 
               <h2 className={styles.modalTitle}>{selectedApplyTask.title}</h2>
               <p className={styles.modalSub}>
-                Posted by <code style={{ color: "#00D4AA" }}>{selectedApplyTask.creator.address}</code> • Smart Contract Order ID: <code>{selectedApplyTask.orderId}</code>
+                Posted by <code style={{ color: "#00D4AA" }}>{selectedApplyTask.creator.address}</code> • Order ID: <code>{selectedApplyTask.orderId}</code>
               </p>
             </div>
 
-            {/* Task Overview Grid */}
-            <div className={styles.taskDetailGrid}>
-              <div className={styles.detailCard}>
-                <span className={styles.detailLabel}>Total Escrow Reward</span>
-                <div className={styles.detailValueTeal}>{selectedApplyTask.reward.toLocaleString()} Qi</div>
-                <span className={styles.detailSub}>Protected by WQI Contract</span>
+            {/* Price Banner */}
+            <div className={styles.productPriceBanner}>
+              <div>
+                <span className={styles.priceBannerLabel}>Total Locked Reward</span>
+                <div className={styles.priceBannerValue}>{selectedApplyTask.reward.toLocaleString()} Qi</div>
               </div>
-
-              <div className={styles.detailCard}>
-                <span className={styles.detailLabel}>Milestone Tranches</span>
-                <div className={styles.detailValue}>
-                  {selectedApplyTask.milestones && selectedApplyTask.milestones.length > 0
-                    ? `${selectedApplyTask.milestones.length} Tranches`
-                    : "1 Single Payout"}
-                </div>
-                <span className={styles.detailSub}>Release on approval</span>
-              </div>
-
-              <div className={styles.detailCard}>
-                <span className={styles.detailLabel}>Target Deadline</span>
-                <div className={styles.detailValue}>{selectedApplyTask.deadline || "Flexible"}</div>
-                <span className={styles.detailSub}>Delivery SLA</span>
+              <div style={{ textAlign: "right" }}>
+                <span className={styles.priceBannerLabel}>Execution Timeline</span>
+                <div className={styles.priceBannerSub}>{selectedApplyTask.deadline}</div>
               </div>
             </div>
 
-            {/* Full Scope & Description */}
+            {/* Task Description */}
             <div className={styles.detailSection}>
-              <h4 className={styles.detailSectionTitle}>📋 Scope of Work & Deliverables</h4>
+              <h4 className={styles.detailSectionTitle}>Scope of Work & Deliverables</h4>
               <p className={styles.detailText}>{selectedApplyTask.description}</p>
             </div>
 
-            {/* Milestone Breakdown List */}
-            {selectedApplyTask.milestones && selectedApplyTask.milestones.length > 0 && (
-              <div className={styles.detailSection}>
-                <h4 className={styles.detailSectionTitle}>🎯 Milestone Tranche Schedule</h4>
-                <div className={styles.trancheScheduleList}>
-                  {selectedApplyTask.milestones.map((m, idx) => (
-                    <div key={idx} className={styles.scheduleItem}>
-                      <div className={styles.scheduleIndex}>M{idx + 1}</div>
-                      <div className={styles.scheduleTitle}>{m.title}</div>
-                      <div className={styles.scheduleAmount}>{m.amount.toLocaleString()} Qi</div>
+            {/* Tranche Breakdown */}
+            <div className={styles.detailSection}>
+              <h4 className={styles.detailSectionTitle}>Milestone Tranche Schedule</h4>
+              <div className={styles.trancheDetailList}>
+                {selectedApplyTask.milestones &&
+                  selectedApplyTask.milestones.map((m, idx) => (
+                    <div key={idx} className={styles.trancheDetailItem}>
+                      <div>
+                        <span className={styles.trancheNum}>M{idx + 1}</span>
+                        <span className={styles.trancheText}>{m.title}</span>
+                      </div>
+                      <span className={styles.trancheAmount}>{m.amount.toLocaleString()} Qi</span>
                     </div>
                   ))}
-                </div>
               </div>
-            )}
+            </div>
 
-            {/* Contract Verification Link */}
-            {selectedApplyTask.contractAddress && (
-              <div style={{ margin: "16px 0" }}>
-                <ExplorerLink hash={selectedApplyTask.contractAddress} label="MilestoneEscrow Contract Evidence & Receipt" />
-              </div>
-            )}
+            {/* Solver Application Submission Form */}
+            <form onSubmit={handleApplySubmit} className={styles.applyFormContainer}>
+              <h3 className={styles.applyFormTitle}>Submit Your Solver Application</h3>
 
-            <hr className={styles.divider} />
-
-            {/* Application Submission Form Section */}
-            <form onSubmit={handleApplySubmit} className={styles.applyForm}>
-              <h3 className={styles.applyFormTitle}>✍️ Submit Your Solver Application</h3>
-              <p className={styles.applyFormSub}>
-                Provide your execution proposal and estimated delivery timeline. The task creator will review and assign you on-chain via <code>assignSolver()</code>.
-              </p>
-
-              {/* Applicant Wallet Address */}
               <div className={styles.inputGroup}>
-                <label className={styles.label}>Applicant Quai Wallet Address</label>
-                <input
-                  type="text"
-                  readOnly
-                  className={styles.formInput}
-                  value={isConnected ? account : "Wallet Not Connected (Click Submit to Connect)"}
-                  style={{ background: "rgba(0,0,0,0.4)", color: isConnected ? "#00D4AA" : "#94A3B8", fontFamily: "monospace" }}
-                />
-              </div>
-
-              {/* Cover Note / Proposal */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Proposal & Technical Approach *</label>
+                <label className={styles.label}>Execution Proposal & Technical Approach *</label>
                 <textarea
-                  rows={3}
-                  placeholder="Explain why you are qualified for this task, your technical plan, and how you will complete the deliverables..."
+                  rows={4}
+                  placeholder="Detail your experience, proposed architecture, milestone timeline, and acceptance criteria..."
                   className={styles.formTextarea}
                   value={applyProposal}
                   onChange={(e) => setApplyProposal(e.target.value)}
@@ -858,24 +761,26 @@ export default function TasksPage() {
                 />
               </div>
 
-              {/* Delivery Timeline & Portfolio Row */}
-              <div className={styles.formRow}>
+              <div className={styles.formRow} style={{ marginTop: "16px" }}>
                 <div className={styles.inputGroup} style={{ flex: 1 }}>
-                  <label className={styles.label}>Estimated Delivery Time</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 3 Days"
-                    className={styles.formInput}
+                  <label className={styles.label}>Estimated Delivery Window</label>
+                  <select
+                    className={styles.formSelect}
                     value={applyTimeline}
                     onChange={(e) => setApplyTimeline(e.target.value)}
-                  />
+                  >
+                    <option value="2 Days">2 Days (Fast SLA)</option>
+                    <option value="3 Days">3 Days (Standard)</option>
+                    <option value="5 Days">5 Days (Complex)</option>
+                    <option value="7 Days">7 Days (Full Audit/Build)</option>
+                  </select>
                 </div>
 
                 <div className={styles.inputGroup} style={{ flex: 1 }}>
-                  <label className={styles.label}>Portfolio / GitHub Link (Optional)</label>
+                  <label className={styles.label}>Portfolio / GitHub URL (Optional)</label>
                   <input
                     type="url"
-                    placeholder="https://github.com/yourhandle"
+                    placeholder="https://github.com/username/project"
                     className={styles.formInput}
                     value={applyPortfolio}
                     onChange={(e) => setApplyPortfolio(e.target.value)}
@@ -883,14 +788,13 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Modal Actions */}
-              <div className={styles.modalActions} style={{ marginTop: "16px" }}>
+              <div className={styles.modalActions} style={{ marginTop: "24px" }}>
                 <button
                   type="button"
                   className="btn btn-outlined"
                   onClick={() => setSelectedApplyTask(null)}
                 >
-                  Close
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -898,7 +802,7 @@ export default function TasksPage() {
                   disabled={isSubmittingApply}
                   style={{ minWidth: "220px", justifyContent: "center" }}
                 >
-                  {isSubmittingApply ? "Sending Application..." : `🚀 Apply for Task (${selectedApplyTask.reward.toLocaleString()} Qi)`}
+                  {isSubmittingApply ? "Sending Application..." : `Apply for Task (${selectedApplyTask.reward.toLocaleString()} Qi)`}
                 </button>
               </div>
             </form>

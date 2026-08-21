@@ -15,11 +15,11 @@ import styles from "./Marketplace.module.css";
 const MOCK_PRODUCTS = [
   {
     id: "mp-001",
-    title: "MacBook Pro 16\" M4 Max",
+    title: "MacBook Pro 16 M4 Max",
     description: "Brand new in sealed box. 48GB RAM, 1TB SSD. Ships internationally with tracking & insurance.",
     price: 2400,
     category: "Electronics",
-    emoji: "💻",
+    badgeTag: "HARDWARE",
     seller: { address: "0x001c...3f47", initial: "B" },
     deadline: "3 Days",
     status: "live",
@@ -32,7 +32,7 @@ const MOCK_PRODUCTS = [
     description: "Rare 1/100 genesis mint on Quai Network. Includes governance rights and staking benefits.",
     price: 800,
     category: "Digital Assets",
-    emoji: "🎨",
+    badgeTag: "DIGITAL",
     seller: { address: "0x0035...fbc6", initial: "Q" },
     deadline: "5 Days",
     status: "live",
@@ -45,7 +45,7 @@ const MOCK_PRODUCTS = [
     description: "Comprehensive Solidity/EVM audit from certified Web3 security firm. 7-day turnaround.",
     price: 1200,
     category: "Services",
-    emoji: "🔒",
+    badgeTag: "SERVICE",
     seller: { address: "0x000E...8fbA", initial: "S" },
     deadline: "7 Days",
     status: "live",
@@ -73,7 +73,6 @@ export default function MarketplacePage() {
   const [formDesc, setFormDesc] = useState("");
   const [formPriceQi, setFormPriceQi] = useState("1000");
   const [formCategory, setFormCategory] = useState("Electronics");
-  const [formEmoji, setFormEmoji] = useState("🛍️");
   const [formDeadlineDays, setFormDeadlineDays] = useState("3");
 
   // Buy Product Modal State
@@ -87,7 +86,7 @@ export default function MarketplacePage() {
       description: "On-chain ProductEscrow listing on Quai Cyprus-1. Funds protected until buyer confirms delivery.",
       price: ord.priceQi || 1000,
       category: "Digital Assets",
-      emoji: "🛍️",
+      badgeTag: "ON-CHAIN",
       seller: { address: ord.seller ? `${ord.seller.slice(0, 6)}...${ord.seller.slice(-4)}` : "0x001c...3f47", initial: "Q" },
       deadline: "3 Days",
       status: "live",
@@ -128,23 +127,23 @@ export default function MarketplacePage() {
   const handleCreateProductSubmit = async (e) => {
     e.preventDefault();
     if (!formTitle.trim()) {
-      addToast({ message: "⚠️ Please enter a product title.", type: "error" });
+      addToast({ message: "Please enter a product title.", type: "error" });
       return;
     }
     const priceNum = parseFloat(formPriceQi);
     if (isNaN(priceNum) || priceNum <= 0) {
-      addToast({ message: "⚠️ Please enter a valid listing price in Qi.", type: "error" });
+      addToast({ message: "Please enter a valid listing price in Qi.", type: "error" });
       return;
     }
 
     if (!isConnected) {
-      addToast({ message: "✍️ Please connect your wallet to create a listing on-chain.", type: "prompt" });
+      addToast({ message: "Please connect your wallet to create a listing on-chain.", type: "prompt" });
       connectWallet();
       return;
     }
 
     try {
-      addToast({ message: "✍️ Awaiting wallet signature to create product listing...", type: "prompt" });
+      addToast({ message: "Awaiting wallet signature to create product listing...", type: "prompt" });
 
       const hash = await createOrder({
         title: formTitle,
@@ -154,7 +153,7 @@ export default function MarketplacePage() {
       });
 
       addToast({
-        message: "✓ Product Listing created on Quai Cyprus-1!",
+        message: "Product Listing created on Quai Cyprus-1",
         type: "success",
         txHash: hash,
       });
@@ -165,7 +164,7 @@ export default function MarketplacePage() {
         description: formDesc || "Protected P2P product listing on Quai Network.",
         price: priceNum,
         category: formCategory,
-        emoji: formEmoji,
+        badgeTag: formCategory.toUpperCase(),
         seller: { address: `${account.slice(0, 6)}...${account.slice(-4)}`, initial: "YOU" },
         deadline: `${formDeadlineDays} Days`,
         status: "live",
@@ -179,7 +178,7 @@ export default function MarketplacePage() {
       setFormDesc("");
       setFormPriceQi("1000");
     } catch (err) {
-      addToast({ message: `⚠️ Listing Creation Failed: ${err.message}`, type: "error" });
+      addToast({ message: `Listing Creation Failed: ${err.message}`, type: "error" });
     }
   };
 
@@ -189,25 +188,25 @@ export default function MarketplacePage() {
     if (!selectedBuyProduct) return;
 
     if (!isConnected) {
-      addToast({ message: "✍️ Please connect your wallet to deposit escrow funds.", type: "prompt" });
+      addToast({ message: "Please connect your wallet to deposit escrow funds.", type: "prompt" });
       connectWallet();
       return;
     }
 
     try {
-      addToast({ message: "✍️ Awaiting wallet signature to deposit Qi into ProductEscrow...", type: "prompt" });
+      addToast({ message: "Awaiting wallet signature to deposit Qi into ProductEscrow...", type: "prompt" });
 
       const hash = await depositProductEscrow(selectedBuyProduct.orderId, selectedBuyProduct.price);
 
       addToast({
-        message: `✓ ${selectedBuyProduct.price.toLocaleString()} Qi locked in ProductEscrow on Quai Cyprus-1!`,
+        message: `${selectedBuyProduct.price.toLocaleString()} Qi locked in ProductEscrow on Quai Cyprus-1`,
         type: "success",
         txHash: hash,
       });
 
       setSelectedBuyProduct(null);
     } catch (err) {
-      addToast({ message: `⚠️ Escrow Deposit Failed: ${err.message}`, type: "error" });
+      addToast({ message: `Escrow Deposit Failed: ${err.message}`, type: "error" });
     }
   };
 
@@ -219,7 +218,7 @@ export default function MarketplacePage() {
         {/* Header Hero Section */}
         <div className={styles.headerSection}>
           <div className={styles.headerLeft}>
-            <span className={styles.badgeLabel}>⚡ Quai Network Protected Commerce</span>
+            <span className={styles.badgeLabel}>QUAI NETWORK PROTECTED COMMERCE</span>
             <h1 className={styles.title}>
               P2P Product <span className="gradient-text">Escrow Marketplace</span>
             </h1>
@@ -303,10 +302,9 @@ export default function MarketplacePage() {
           </select>
         </div>
 
-        {/* Indexing Indicator (#28) */}
+        {/* Indexing Indicator */}
         {onChainLoading && (
           <div className={styles.loadingBox}>
-            <span className={styles.loadingSpinner}>⏳</span>
             <span>Indexing live ProductEscrow smart contract events on Quai Cyprus-1...</span>
           </div>
         )}
@@ -316,7 +314,7 @@ export default function MarketplacePage() {
           {filteredProducts.map((p) => (
             <div key={p.id} className={styles.productCard}>
               <div className={styles.cardImageArea}>
-                <span className={styles.productEmoji}>{p.emoji}</span>
+                <div className={styles.productBadgeTag}>{p.badgeTag || "ITEM"}</div>
                 <span className={styles.categoryBadge}>{p.category}</span>
                 <div className={styles.escrowBadge}>
                   <span className={styles.escrowDot} /> Escrow Protected
@@ -332,7 +330,7 @@ export default function MarketplacePage() {
                     <span className={styles.sellerAvatar}>{p.seller.initial}</span>
                     <span className={styles.sellerAddr}>{p.seller.address}</span>
                   </div>
-                  <span className={styles.deadlineBadge}>⏱️ {p.deadline} Window</span>
+                  <span className={styles.deadlineBadge}>{p.deadline} Window</span>
                 </div>
 
                 {p.txHash && (
@@ -349,7 +347,7 @@ export default function MarketplacePage() {
 
                   <div className={styles.ctaGroup}>
                     <FarcasterShareButton
-                      text={`Check out this protected product listing: "${p.title}" (${p.price} Qi) on Quai Network! 🛍️`}
+                      text={`Check out this protected product listing: "${p.title}" (${p.price} Qi) on Quai Network!`}
                       buttonText="Share"
                     />
                     <button
@@ -368,7 +366,6 @@ export default function MarketplacePage() {
         {/* Empty State */}
         {filteredProducts.length === 0 && (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>🛍️</div>
             <h3 className={styles.emptyTitle}>No product listings found</h3>
             <p className={styles.emptyDesc}>Try adjusting your search query or switching categories.</p>
           </div>
@@ -384,7 +381,7 @@ export default function MarketplacePage() {
             </button>
 
             <div className={styles.modalHeader}>
-              <span className={styles.modalBadge}>🛍️ ProductEscrow.sol</span>
+              <span className={styles.modalBadge}>ProductEscrow.sol</span>
               <h2 className={styles.modalTitle}>Create Product Listing</h2>
               <p className={styles.modalSub}>
                 List a product or service with smart-contract escrow protection on Quai Network. Buyers deposit Qi which unlocks only after confirmed delivery.
@@ -392,35 +389,17 @@ export default function MarketplacePage() {
             </div>
 
             <form onSubmit={handleCreateProductSubmit} className={styles.modalForm}>
-              {/* Title & Emoji Row */}
-              <div className={styles.formRow}>
-                <div className={styles.inputGroup} style={{ flex: 1 }}>
-                  <label className={styles.label}>Product Title *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. MacBook Pro 16 M4 Max"
-                    className={styles.formInput}
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className={styles.inputGroup} style={{ width: "120px" }}>
-                  <label className={styles.label}>Item Icon</label>
-                  <select
-                    className={styles.formSelect}
-                    value={formEmoji}
-                    onChange={(e) => setFormEmoji(e.target.value)}
-                  >
-                    <option value="🛍️">🛍️ Product</option>
-                    <option value="💻">💻 Electronics</option>
-                    <option value="🎨">🎨 Digital Asset</option>
-                    <option value="🔒">🔒 Service</option>
-                    <option value="⚡">⚡ Tech Hardware</option>
-                    <option value="📦">📦 Physical Goods</option>
-                  </select>
-                </div>
+              {/* Title Input */}
+              <div className={styles.inputGroup}>
+                <label className={styles.label}>Product Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. MacBook Pro 16 M4 Max"
+                  className={styles.formInput}
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  required
+                />
               </div>
 
               {/* Description */}
@@ -489,7 +468,11 @@ export default function MarketplacePage() {
 
               {/* Contract Verification Notice */}
               <div className={styles.contractNotice}>
-                <div className={styles.noticeIcon}>🔒</div>
+                <div className={styles.noticeShieldIcon}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
                 <div>
                   <div className={styles.noticeTitle}>ProductEscrow.sol Verification</div>
                   <div className={styles.noticeText}>
@@ -513,7 +496,7 @@ export default function MarketplacePage() {
                   disabled={contractLoading}
                   style={{ minWidth: "220px", justifyContent: "center" }}
                 >
-                  {contractLoading ? "✍️ Creating Listing..." : `Publish Product Listing (${formPriceQi} Qi)`}
+                  {contractLoading ? "Creating Listing..." : `Publish Product Listing (${formPriceQi} Qi)`}
                 </button>
               </div>
             </form>
@@ -538,7 +521,7 @@ export default function MarketplacePage() {
               </div>
 
               <h2 className={styles.modalTitle}>
-                {selectedBuyProduct.emoji} {selectedBuyProduct.title}
+                {selectedBuyProduct.title}
               </h2>
               <p className={styles.modalSub}>
                 Seller: <code style={{ color: "#00D4AA" }}>{selectedBuyProduct.seller.address}</code> • Order ID: <code>{selectedBuyProduct.orderId}</code>
@@ -553,19 +536,23 @@ export default function MarketplacePage() {
               </div>
               <div style={{ textAlign: "right" }}>
                 <span className={styles.priceBannerLabel}>Delivery Window</span>
-                <div className={styles.priceBannerSub}>⏱️ {selectedBuyProduct.deadline}</div>
+                <div className={styles.priceBannerSub}>{selectedBuyProduct.deadline}</div>
               </div>
             </div>
 
             {/* Description */}
             <div className={styles.detailSection}>
-              <h4 className={styles.detailSectionTitle}>📋 Specifications & Shipping Terms</h4>
+              <h4 className={styles.detailSectionTitle}>Specifications & Shipping Terms</h4>
               <p className={styles.detailText}>{selectedBuyProduct.description}</p>
             </div>
 
             {/* Protection Notice */}
             <div className={styles.protectionBox}>
-              <div className={styles.protectionIcon}>🛡️</div>
+              <div className={styles.noticeShieldIcon}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
               <div>
                 <div className={styles.protectionTitle}>Quai Network Buyer Guarantee</div>
                 <div className={styles.protectionText}>
@@ -596,7 +583,7 @@ export default function MarketplacePage() {
                 disabled={contractLoading}
                 style={{ minWidth: "240px", justifyContent: "center" }}
               >
-                {contractLoading ? "✍️ Signing Escrow Deposit..." : `Deposit ${selectedBuyProduct.price.toLocaleString()} Qi & Buy`}
+                {contractLoading ? "Signing Escrow Deposit..." : `Deposit ${selectedBuyProduct.price.toLocaleString()} Qi & Buy`}
               </button>
             </form>
           </div>
