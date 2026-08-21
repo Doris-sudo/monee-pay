@@ -72,23 +72,23 @@ export default function CreateOrderPage() {
     e.preventDefault();
 
     if (!title.trim()) {
-      addToast({ message: "⚠️ Please enter a contract title.", type: "error" });
+      addToast({ message: "Please enter an escrow contract title.", type: "error" });
       return;
     }
 
     const priceNum = parseFloat(totalAmount);
     if (isNaN(priceNum) || priceNum <= 0) {
-      addToast({ message: "⚠️ Please enter a valid escrow deposit amount in Qi.", type: "error" });
+      addToast({ message: "Please enter a valid collateral deposit amount in Qi.", type: "error" });
       return;
     }
 
     if (showMilestones && !isPercentValid) {
-      addToast({ message: `⚠️ Tranche percentages must sum to 100% (Current: ${totalPercent}%).`, type: "error" });
+      addToast({ message: `Tranche percentages must sum to 100% (Current: ${totalPercent}%).`, type: "error" });
       return;
     }
 
     if (!isConnected) {
-      addToast({ message: "✍️ Please connect your wallet to deploy contract on-chain.", type: "prompt" });
+      addToast({ message: "Please connect your wallet to deploy contract on-chain.", type: "prompt" });
       connectWallet();
       return;
     }
@@ -96,7 +96,7 @@ export default function CreateOrderPage() {
     setIsSubmitting(true);
 
     try {
-      addToast({ message: "✍️ Awaiting wallet signature to deploy escrow contract...", type: "prompt" });
+      addToast({ message: "Awaiting wallet signature to deploy escrow contract...", type: "prompt" });
       let hash = "";
 
       if (escrowType === "product_sale") {
@@ -124,7 +124,7 @@ export default function CreateOrderPage() {
       }
 
       addToast({
-        message: "✓ Escrow Smart Contract deployed on Quai Cyprus-1!",
+        message: "Escrow Smart Contract deployed on Quai Cyprus-1",
         type: "success",
         txHash: hash,
       });
@@ -137,7 +137,7 @@ export default function CreateOrderPage() {
       setIsCreated(true);
     } catch (err) {
       console.error("Contract deployment error:", err);
-      addToast({ message: `⚠️ Deployment Failed: ${err.message}`, type: "error" });
+      addToast({ message: `Deployment Failed: ${err.message}`, type: "error" });
       setIsSubmitting(false);
     }
   };
@@ -171,18 +171,18 @@ export default function CreateOrderPage() {
       <main className={styles.mainArea}>
         {/* Header Hero Section */}
         <div className={styles.headerSection}>
-          <span className={styles.badgeLabel}>⚡ Quai Network Smart Escrow Engine</span>
+          <span className={styles.badgeLabel}>QUAI NETWORK INSTANT SMART ESCROW ENGINE</span>
           <h1 className={styles.title}>
-            Create <span className="gradient-text">Escrow Contract</span>
+            Deploy On-Chain <span className="gradient-text">Escrow Contract</span>
           </h1>
           <p className={styles.subtitle}>
-            Deploy trustless smart escrow on Quai Cyprus-1. Supports milestone payouts, task bounties, and protected physical/digital P2P commerce.
+            Deploy non-custodial smart escrows on Quai Cyprus-1 with automated WQI collateral wrapping. Secure milestone-gated deliverables, P2P commerce, and task bounties with trustless settlement SLAs.
           </p>
         </div>
 
         {contractError && (
           <div className={styles.errorAlert}>
-            ⚠️ Contract Error: {contractError}
+            Contract Error: {contractError}
           </div>
         )}
 
@@ -191,7 +191,7 @@ export default function CreateOrderPage() {
             <form onSubmit={handleSubmitOrder} className={styles.formSection}>
               {/* Type Selector */}
               <div className={styles.inputGroup}>
-                <label className={styles.label}>Select Escrow Contract Type</label>
+                <label className={styles.label}>Select Escrow Contract Architecture</label>
                 <div className={styles.typeSwitcher}>
                   <button
                     type="button"
@@ -199,11 +199,11 @@ export default function CreateOrderPage() {
                     onClick={() => setEscrowType("task_reward")}
                   >
                     <div className={styles.typeTopRow}>
-                      <span className={styles.typeIcon}>⚡</span>
+                      <span className={styles.typeBadgeTag}>BOUNTY</span>
                       <div className={`${styles.radioDot} ${escrowType === "task_reward" ? styles.radioActive : ""}`} />
                     </div>
-                    <span className={styles.typeTitle}>Task Bounty</span>
-                    <span className={styles.typeDesc}>Single or tranche payout upon deliverable completion</span>
+                    <span className={styles.typeTitle}>Task & Bounty Escrow</span>
+                    <span className={styles.typeDesc}>Single or tranche payout upon deliverable verification</span>
                   </button>
 
                   <button
@@ -212,11 +212,11 @@ export default function CreateOrderPage() {
                     onClick={() => setEscrowType("product_sale")}
                   >
                     <div className={styles.typeTopRow}>
-                      <span className={styles.typeIcon}>🛍️</span>
+                      <span className={styles.typeBadgeTag}>COMMERCE</span>
                       <div className={`${styles.radioDot} ${escrowType === "product_sale" ? styles.radioActive : ""}`} />
                     </div>
-                    <span className={styles.typeTitle}>Product Commerce</span>
-                    <span className={styles.typeDesc}>P2P item sales with delivery deadline protection</span>
+                    <span className={styles.typeTitle}>P2P Product Commerce</span>
+                    <span className={styles.typeDesc}>Physical or digital item sales with delivery deadline SLA</span>
                   </button>
 
                   <button
@@ -225,11 +225,11 @@ export default function CreateOrderPage() {
                     onClick={() => setEscrowType("milestone")}
                   >
                     <div className={styles.typeTopRow}>
-                      <span className={styles.typeIcon}>🎯</span>
+                      <span className={styles.typeBadgeTag}>MILESTONE</span>
                       <div className={`${styles.radioDot} ${escrowType === "milestone" ? styles.radioActive : ""}`} />
                     </div>
-                    <span className={styles.typeTitle}>Milestone Project</span>
-                    <span className={styles.typeDesc}>Multi-phase contract with tranche release approvals</span>
+                    <span className={styles.typeTitle}>Multi-Phase Milestone Escrow</span>
+                    <span className={styles.typeDesc}>Structured milestone releases with individual tranche approvals</span>
                   </button>
                 </div>
               </div>
@@ -237,11 +237,11 @@ export default function CreateOrderPage() {
               {/* Title & Amount 2-Column Grid */}
               <div className={styles.formGrid}>
                 <div className={styles.inputGroup}>
-                  <label className={styles.label}>Contract Title *</label>
+                  <label className={styles.label}>Escrow Contract Title *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Audit MoneePay Smart Contract or Next.js App Design"
+                    placeholder="e.g. Solidity Smart Contract Security Audit or Next.js dApp Design"
                     className={styles.input}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -249,7 +249,7 @@ export default function CreateOrderPage() {
                 </div>
 
                 <div className={styles.inputGroup}>
-                  <label className={styles.label}>Total Escrow Deposit (Qi) *</label>
+                  <label className={styles.label}>Escrow Collateral Deposit (Qi) *</label>
                   <div className={styles.currencyWrapper}>
                     <input
                       type="number"
@@ -267,10 +267,10 @@ export default function CreateOrderPage() {
 
               {/* Description */}
               <div className={styles.inputGroup}>
-                <label className={styles.label}>Description & Scope of Work</label>
+                <label className={styles.label}>Scope of Work & Acceptance Criteria</label>
                 <textarea
                   rows={4}
-                  placeholder="Specify clear deliverables, acceptance criteria, and payout terms..."
+                  placeholder="Specify clear deliverables, acceptance criteria, technical stack, and payout terms..."
                   className={styles.textarea}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -280,28 +280,28 @@ export default function CreateOrderPage() {
               {/* Deadline & Options Row */}
               <div className={styles.formGrid}>
                 <div className={styles.inputGroup}>
-                  <label className={styles.label}>Delivery Window / Deadline (Days)</label>
+                  <label className={styles.label}>Delivery SLA / Expiry Window (Days)</label>
                   <select
                     className={styles.select}
                     value={deadlineDays}
                     onChange={(e) => setDeadlineDays(e.target.value)}
                   >
-                    <option value="3">3 Days (Express Delivery)</option>
-                    <option value="7">7 Days (Standard Work)</option>
-                    <option value="14">14 Days (Two Weeks)</option>
-                    <option value="30">30 Days (Monthly Contract)</option>
+                    <option value="3">3 Days (Express SLA)</option>
+                    <option value="7">7 Days (Standard SLA)</option>
+                    <option value="14">14 Days (Two Weeks SLA)</option>
+                    <option value="30">30 Days (Enterprise SLA)</option>
                   </select>
                 </div>
 
                 {escrowType === "task_reward" && (
                   <div className={styles.inputGroup} style={{ justifyContent: "center" }}>
-                    <label className={styles.label}>Enable Milestone Tranches?</label>
+                    <label className={styles.label}>Milestone Tranches Option</label>
                     <button
                       type="button"
                       className={`${styles.toggleBtn} ${enableMilestones ? styles.toggleBtnActive : ""}`}
                       onClick={() => setEnableMilestones(!enableMilestones)}
                     >
-                      {enableMilestones ? "✓ Milestone Tranches Enabled" : "+ Enable Tranches"}
+                      {enableMilestones ? "Milestone Tranches Enabled" : "+ Enable Milestone Tranches"}
                     </button>
                   </div>
                 )}
@@ -374,13 +374,17 @@ export default function CreateOrderPage() {
 
               {/* On-Chain Contract Verification Box */}
               <div className={styles.contractNotice}>
-                <div className={styles.noticeIcon}>🔒</div>
+                <div className={styles.noticeShieldIcon}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
                 <div>
                   <div className={styles.noticeTitle}>
                     Quai Cyprus-1 Contract: {escrowType === "product_sale" ? "ProductEscrow.sol" : "MilestoneEscrow.sol"}
                   </div>
                   <div className={styles.noticeText}>
-                    Target Address: <code>{escrowType === "product_sale" ? CONTRACT_ADDRESSES.ProductEscrow : CONTRACT_ADDRESSES.MilestoneEscrow}</code>. Funds are wrapped to WQI and held safely in escrow.
+                    Target Address: <code>{escrowType === "product_sale" ? CONTRACT_ADDRESSES.ProductEscrow : CONTRACT_ADDRESSES.MilestoneEscrow}</code>. Collateral is wrapped to WQI and secured on-chain.
                   </div>
                 </div>
               </div>
@@ -392,17 +396,21 @@ export default function CreateOrderPage() {
                 disabled={isSubmitting || loading || (showMilestones && !isPercentValid)}
                 style={{ width: "100%", padding: "16px", fontSize: "1rem", marginTop: "12px", justifyContent: "center" }}
               >
-                {isSubmitting || loading ? "🚀 Deploying Smart Contract to Quai Network..." : `🚀 Deploy Escrow Contract (${totalAmount} Qi)`}
+                {isSubmitting || loading ? "Deploying Smart Contract to Quai Network..." : `Deploy On-Chain Escrow (${totalAmount} Qi)`}
               </button>
             </form>
           </div>
         ) : (
           /* Success Receipt Card */
           <div className={styles.successCard}>
-            <div className={styles.successIcon}>✓</div>
-            <h2 className={styles.successTitle}>Escrow Contract Deployed! 🎉</h2>
+            <div className={styles.successCheckIcon}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h2 className={styles.successTitle}>Escrow Contract Deployed</h2>
             <p className={styles.successSub}>
-              Smart contract successfully deployed on Quai Cyprus-1. Funds protected in WQI escrow until delivery confirmation.
+              Smart contract successfully deployed on Quai Cyprus-1. Funds protected in WQI escrow until deliverable verification.
             </p>
 
             {createdTxHash && (
@@ -414,13 +422,13 @@ export default function CreateOrderPage() {
             <div className={styles.linkBox}>
               <input type="text" readOnly value={createdOrderLink} className={styles.linkInput} />
               <button className="btn btn-primary" onClick={handleCopyLink}>
-                {copied ? "✓ Copied!" : "Copy Share Link"}
+                {copied ? "Copied Link" : "Copy Share Link"}
               </button>
             </div>
 
             <div className={styles.successActions}>
               <FarcasterShareButton
-                text={`Created a trustless escrow payment for "${title}" (${totalAmount} Qi) on Quai Network via MoneePay! ⚡`}
+                text={`Created a trustless escrow payment for "${title}" (${totalAmount} Qi) on Quai Network via MoneePay!`}
                 buttonText="Share Escrow Frame"
               />
               <button className="btn btn-outlined" onClick={handleCreateAnother}>
