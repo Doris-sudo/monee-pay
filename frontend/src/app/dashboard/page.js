@@ -1,12 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import StatsGrid from "@/components/StatsGrid";
 import OrdersTable from "@/components/OrdersTable";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
 import styles from "./Dashboard.module.css";
+
+const MOCK_APPLICATIONS = [
+  {
+    id: "app-default-1",
+    taskId: "task-001",
+    taskTitle: "Quai Cyprus-1 Subgraph Indexer & Analytics API",
+    rewardQi: 1500,
+    type: "milestone",
+    creator: "0x001c...3f47",
+    proposal: "Will deploy a Graph Protocol indexer node on Cyprus-1 with GraphQL API endpoints for real-time escrow analytics.",
+    timeline: "5 Days",
+    portfolio: "https://github.com/senmalong/quai-indexer",
+    submittedAt: "Aug 20, 2026",
+    status: "Under Review",
+    statusType: "review",
+  },
+  {
+    id: "app-default-2",
+    taskId: "task-002",
+    taskTitle: "Quai Mobile Wallet iOS/Android SDK",
+    rewardQi: 2500,
+    type: "bounty",
+    creator: "0x0035...fbc6",
+    proposal: "React Native SDK wrapper around Pelagus Provider API with bio-authentication and instant Qi transfer support.",
+    timeline: "7 Days",
+    portfolio: "https://github.com/senmalong/quai-mobile-sdk",
+    submittedAt: "Aug 18, 2026",
+    status: "Shortlisted",
+    statusType: "shortlisted",
+  },
+];
 
 export default function Dashboard() {
   // View Modes: 'connected' (individual) | 'corporate' | 'empty' | 'disconnected'
@@ -19,12 +50,21 @@ export default function Dashboard() {
     role: "Payroll Admin / Founder",
   });
 
+  // Tab State: 'orders' | 'applications'
+  const [activeMainTab, setActiveMainTab] = useState("orders");
+  const [userApplications, setUserApplications] = useState([]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const urlOrg = urlParams.get("org");
       const urlDomain = urlParams.get("domain");
       const urlMode = urlParams.get("mode");
+      const urlTab = urlParams.get("tab");
+
+      if (urlTab === "applications") {
+        setActiveMainTab("applications");
+      }
 
       // Check if user has a saved org profile → corporate mode
       const saved = localStorage.getItem("moneepay_active_org");
@@ -41,6 +81,23 @@ export default function Dashboard() {
         } catch (e) {
           console.warn("Failed to parse saved org profile:", e);
         }
+      }
+
+      // Load submitted task applications from localStorage
+      try {
+        const savedApps = localStorage.getItem("moneepay_my_applications");
+        if (savedApps) {
+          const parsed = JSON.parse(savedApps);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setUserApplications(parsed);
+          } else {
+            setUserApplications(MOCK_APPLICATIONS);
+          }
+        } else {
+          setUserApplications(MOCK_APPLICATIONS);
+        }
+      } catch (e) {
+        setUserApplications(MOCK_APPLICATIONS);
       }
 
       // Determine view state
@@ -136,7 +193,7 @@ export default function Dashboard() {
     : [
         { id: "act-1", text: "Order #MNP-0042 funded by Alice", amount: "+500 Qi", time: "10 mins ago", type: "in" },
         { id: "act-2", text: "Milestone 2 approved for Order #MNP-0040", amount: "+400 Qi", time: "2 hours ago", type: "in" },
-        { id: "act-3", text: "Payment released for Order #MNP-0038", amount: "-450 Qi", time: "Yesterday", type: "out" },
+        { id: "act-3", text: "Submitted application for Quai Subgraph Indexer", amount: "1,500 Qi", time: "Yesterday", type: "info" },
       ];
 
   return (
@@ -163,7 +220,7 @@ export default function Dashboard() {
             <p className={styles.greetingSub}>
               {isCorporate
                 ? `Manage corporate treasury, employee batch payrolls, vendor escrows, and audit logs for ${activeOrg.name}.`
-                : "Manage your active escrows, payments, and task rewards."}
+                : "Manage your active escrows, payments, and submitted task applications."}
             </p>
           </div>
 
@@ -205,19 +262,126 @@ export default function Dashboard() {
 
             {/* Main Content Grid */}
             <div className={styles.contentGrid}>
-              {/* Left Column: Orders Table */}
+              {/* Left Column: Orders & Applications Table Pane */}
               <div className={styles.leftCol}>
-                <div className={`${styles.ordersSection} glass-card`}>
-                  <div className={styles.sectionHeader}>
-                    <h2 className={styles.sectionTitle}>
-                      {isCorporate ? `${activeOrg.name} Payrolls & Vendor Escrows` : "Active Orders"}
-                    </h2>
-                    <span className={styles.orderCount}>
-                      {viewState === "empty" ? "0 Records" : `${ordersData.length} Active Records`}
-                    </span>
-                  </div>
-                  <OrdersTable ordersData={ordersData} viewState={viewState} />
+                {/* Dashboard Navigation Tabs */}
+                <div className={styles.tabNavContainer}>
+                  <button
+                    className={`${styles.tabBtn} ${activeMainTab === "orders" ? styles.tabBtnActive : ""}`}
+                    onClick={() => setActiveMainTab("orders")}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    <span>{isCorporate ? `${activeOrg.name} Vendor Escrows` : "Active Orders & Escrows"}</span>
+                    <span className={styles.tabCountBadge}>{ordersData.length}</span>
+                  </button>
+
+                  <button
+                    className={`${styles.tabBtn} ${activeMainTab === "applications" ? styles.tabBtnActive : ""}`}
+                    onClick={() => setActiveMainTab("applications")}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <span>My Task Applications</span>
+                    <span className={styles.tabCountBadge}>{userApplications.length}</span>
+                  </button>
                 </div>
+
+                {/* TAB 1: ORDERS TABLE */}
+                {activeMainTab === "orders" && (
+                  <div className={`${styles.ordersSection} glass-card`}>
+                    <div className={styles.sectionHeader}>
+                      <h2 className={styles.sectionTitle}>
+                        {isCorporate ? `${activeOrg.name} Payrolls & Vendor Escrows` : "Active Escrow Orders"}
+                      </h2>
+                      <span className={styles.orderCount}>
+                        {viewState === "empty" ? "0 Records" : `${ordersData.length} Active Records`}
+                      </span>
+                    </div>
+                    <OrdersTable ordersData={ordersData} viewState={viewState} />
+                  </div>
+                )}
+
+                {/* TAB 2: MY APPLICATIONS TABLE */}
+                {activeMainTab === "applications" && (
+                  <div className={`${styles.ordersSection} glass-card`}>
+                    <div className={styles.sectionHeader}>
+                      <div>
+                        <h2 className={styles.sectionTitle}>My Task & Bounty Applications</h2>
+                        <p className={styles.sectionSub}>Track the status of all solver proposals submitted on Quai Network.</p>
+                      </div>
+                      <Link href="/tasks" className="btn btn-primary btn-sm">
+                        + Browse Tasks
+                      </Link>
+                    </div>
+
+                    <div className={styles.tableWrapper}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th>Task Title & Type</th>
+                            <th>Bounty Reward</th>
+                            <th>Creator</th>
+                            <th>Applied Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userApplications.map((app) => (
+                            <tr key={app.id}>
+                              <td>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                  <span style={{ fontWeight: 700, color: "#F8FAFC" }}>{app.taskTitle}</span>
+                                  <span style={{ fontSize: "0.75rem", color: "#94A3B8" }}>
+                                    Timeline: {app.timeline || "3 Days"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td>
+                                <strong style={{ color: "#00D4AA", fontSize: "1rem" }}>
+                                  {app.rewardQi.toLocaleString()} Qi
+                                </strong>
+                              </td>
+                              <td>
+                                <code style={{ color: "#94A3B8", fontSize: "0.82rem" }}>{app.creator}</code>
+                              </td>
+                              <td style={{ color: "#94A3B8", fontSize: "0.85rem" }}>
+                                {app.submittedAt}
+                              </td>
+                              <td>
+                                <span className={`${styles.statusBadgeApp} ${app.statusType === "shortlisted" ? styles.statusShortlisted : styles.statusReview}`}>
+                                  <span className={styles.statusDotApp} />
+                                  {app.status}
+                                </span>
+                              </td>
+                              <td>
+                                <Link href="/tasks" className={styles.tableActionLink}>
+                                  View Task →
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {userApplications.length === 0 && (
+                        <div className={styles.emptyTableState}>
+                          <p style={{ color: "#94A3B8", margin: "20px 0" }}>You haven&apos;t submitted any task applications yet.</p>
+                          <Link href="/tasks" className="btn btn-primary btn-sm">
+                            Browse Tasks & Apply
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Quick Actions & Activity Feed */}
@@ -249,15 +413,24 @@ export default function Dashboard() {
                       </>
                     ) : (
                       <>
-                        <Link href="/order/create" className="btn btn-primary" style={{ width: "100%", justifyContent: "flex-start" }}>
+                        <Link href="/tasks" className="btn btn-primary" style={{ width: "100%", justifyContent: "flex-start" }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <circle cx="12" cy="12" r="6" />
+                            <circle cx="12" cy="12" r="2" />
+                          </svg>
+                          <span>Browse Tasks & Apply</span>
+                        </Link>
+
+                        <Link href="/order/create" className="btn btn-outlined" style={{ width: "100%", justifyContent: "flex-start" }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                           </svg>
                           <span>Create New Order</span>
                         </Link>
 
-                        <FarcasterShareButton text="Managing my escrow transactions on MoneePay!" />
+                        <FarcasterShareButton text="Managing my escrow transactions and task applications on MoneePay!" />
                       </>
                     )}
                   </div>
