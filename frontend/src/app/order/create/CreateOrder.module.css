@@ -17,7 +17,6 @@
   margin-left: 260px;
   padding: 36px 48px 60px 48px;
   min-width: 0;
-  max-width: 900px;
   transition: margin-left var(--transition-normal);
 }
 
