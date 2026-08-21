@@ -1,97 +1,101 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
-import WalletModal from "./WalletModal";
-import OrgOnboardingModal from "./OrgOnboardingModal";
+import { usePathname } from "next/navigation";
 import { useWallet } from "@/hooks/useWallet";
-import { useFarcaster } from "./FarcasterProvider";
+import { quais } from "quais";
+import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import styles from "./Navbar.module.css";
 
-export default function Navbar() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { isFrame } = useFarcaster();
-  const {
-    account,
-    truncatedAddress,
-    isConnected,
-    isConnecting,
-    isCorrectNetwork,
-    balances,
-    connectWallet,
-    disconnectWallet,
-    switchNetwork,
-  } = useWallet();
+const CONTRACT_ADDRESSES = {
+  ProductEscrow: "0x0067f487e59f0C45922854F32B6d8deD8e820776",
+  MilestoneEscrow: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
+  BatchPayroll: "0x0062dE9F6E207FFB33568853b05423fA80aC9E6A",
+};
 
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [isWalletMenuOpen, setIsWalletMenuOpen] = useState(false);
+export default function Navbar() {
+  const pathname = usePathname();
+  const { account, isConnected, isConnecting, connectWallet, disconnectWallet, chainId, switchNetwork } = useWallet();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
+  const [isWalletMenuOpen, setIsWalletMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeOrg, setActiveOrg] = useState(null);
+
+  // Live balances
+  const [balances, setBalances] = useState({ qi: "0", wqi: "0" });
 
   const menuRef = useRef(null);
 
-  const handleWalletConnect = async (walletName) => {
-    const success = await connectWallet(walletName);
-    if (success) {
-      router.push("/dashboard?mode=connected");
+  // Fetch balances when connected
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchBalances() {
+      if (!isConnected || !account || typeof window === "undefined" || !window.pelagus) return;
+      try {
+        const provider = new quais.BrowserProvider(window.pelagus);
+        const qiBalWei = await provider.getBalance(account);
+        const qiFormatted = parseFloat(quais.formatEther(qiBalWei)).toFixed(2);
+
+        if (isMounted) {
+          setBalances((prev) => ({ ...prev, qi: qiFormatted }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch native Qi balance:", err);
+      }
     }
-  };
+
+    fetchBalances();
+    const interval = setInterval(fetchBalances, 12000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isConnected, account]);
+
+  // Click outside listener for wallet dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsWalletMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleToggleWallet = () => {
-    if (isConnected) {
-      setIsWalletMenuOpen((prev) => !prev);
+    if (!isConnected) {
+      connectWallet();
     } else {
-      setIsWalletModalOpen(true);
+      setIsWalletMenuOpen((prev) => !prev);
     }
   };
 
   const handleDisconnect = () => {
     disconnectWallet();
     setIsWalletMenuOpen(false);
-    setIsMobileMenuOpen(false);
   };
 
   const handleCopyAddress = () => {
-    if (!account) return;
-    navigator.clipboard.writeText(account);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (account && navigator.clipboard) {
+      navigator.clipboard.writeText(account);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  const handleOrgRegistered = (orgData) => {
-    setActiveOrg(orgData);
-  };
-
-  // Close menus on path change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setIsWalletMenuOpen(false);
-  }, [pathname]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setIsWalletMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const truncatedAddress = account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "";
+  const isWrongNetwork = isConnected && chainId && String(chainId) !== "15000" && chainId !== 15000;
 
   return (
     <>
-      {isConnected && !isCorrectNetwork && (
+      {/* Network Warning Banner */}
+      {isWrongNetwork && (
         <div style={{
-          background: "rgba(239, 68, 68, 0.15)",
-          borderBottom: "1px solid rgba(239, 68, 68, 0.3)",
-          color: "#F87171",
+          background: "rgba(239, 68, 68, 0.9)",
+          color: "#ffffff",
           fontSize: "0.85rem",
+          fontWeight: 700,
           padding: "8px 16px",
           textAlign: "center",
           display: "flex",
@@ -99,75 +103,83 @@ export default function Navbar() {
           justifyContent: "center",
           gap: "12px"
         }}>
-          <span>⚠️ Switch to Quai Cyprus-1 (Chain 15000).</span>
+          <span>Incorrect Network: Switch to Quai Cyprus-1 (Chain 15000).</span>
           <button
             onClick={switchNetwork}
             style={{
-              background: "#EF4444",
-              color: "#fff",
+              background: "#ffffff",
+              color: "#EF4444",
               border: "none",
               borderRadius: "4px",
               padding: "4px 10px",
               fontSize: "0.78rem",
-              fontWeight: 600,
+              fontWeight: 800,
               cursor: "pointer"
             }}
           >
-            Switch
+            Switch Network Now
           </button>
         </div>
       )}
 
-      <header className={styles.header}>
-        <div className={styles.container}>
-          <div className={styles.brand}>
+      <header className={styles.navbarHeader}>
+        <div className={styles.navContainer}>
+          {/* Logo Brand */}
+          <Link href="/" className={styles.brandLink}>
             <div className={styles.logoIcon}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#00D4AA" strokeWidth="2" strokeLinejoin="round"/>
-                <path d="M12 6L7 9V15L12 18L17 15V9L12 6Z" fill="url(#logo-grad)"/>
-                <defs>
-                  <linearGradient id="logo-grad" x1="7" y1="6" x2="17" y2="18" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#00D4AA"/>
-                    <stop offset="1" stopColor="#00B4D8"/>
-                  </linearGradient>
-                </defs>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#00D4AA" strokeWidth="2" />
+                <path d="M12 6L7 9V15L12 18L17 15V9L12 6Z" fill="#00D4AA" />
               </svg>
             </div>
-            <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
-              <span className={styles.logoText}>Monee<span className={styles.logoHighlight}>Pay</span></span>
-            </Link>
-          </div>
+            <span className={styles.brandTitle}>
+              Monee<span style={{ color: "#00D4AA" }}>Pay</span>
+            </span>
+            <span className={styles.networkBadgePill}>Quai Cyprus-1</span>
+          </Link>
 
-          {/* Desktop Nav Links */}
-          <nav className={styles.navLinks}>
-            {isConnected ? (
-              <Link href="/dashboard" className={styles.link}>Dashboard</Link>
-            ) : (
-              <button
-                className={styles.linkGated}
-                onClick={() => setIsWalletModalOpen(true)}
-                title="Connect wallet to access Dashboard"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                Dashboard
-              </button>
-            )}
-            <Link href="/marketplace" className={styles.link}>Marketplace</Link>
-            <Link href="/tasks" className={styles.link}>Tasks</Link>
-            <Link href="/payroll" className={styles.link}>Team Payroll</Link>
-            <Link href="/admin/disputes" className={styles.link}>Disputes</Link>
+          {/* Desktop Navigation Links */}
+          <nav className={styles.desktopNav}>
+            <Link
+              href="/dashboard"
+              className={`${styles.navLink} ${pathname === "/dashboard" ? styles.navLinkActive : ""}`}
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/marketplace"
+              className={`${styles.navLink} ${pathname === "/marketplace" ? styles.navLinkActive : ""}`}
+            >
+              Marketplace
+            </Link>
+            <Link
+              href="/tasks"
+              className={`${styles.navLink} ${pathname === "/tasks" ? styles.navLinkActive : ""}`}
+            >
+              Tasks & Bounties
+            </Link>
+            <Link
+              href="/payroll"
+              className={`${styles.navLink} ${pathname === "/payroll" ? styles.navLinkActive : ""}`}
+            >
+              Corporate Payroll
+            </Link>
+            <Link
+              href="/admin/disputes"
+              className={`${styles.navLink} ${pathname === "/admin/disputes" ? styles.navLinkActive : ""}`}
+            >
+              Arbitration
+            </Link>
           </nav>
 
-          <div className={styles.actions}>
+          {/* Right Action Bar */}
+          <div className={styles.navRightActions}>
             {/* Display Qi / WQI Balances on Desktop */}
             {isConnected && (
               <div className={styles.balanceBadgeDesk}>
-                <span title="Native Qi Balance">⚡ {balances.qi} Qi</span>
+                <span title="Native Qi Balance">{balances.qi} Qi</span>
                 <span style={{ opacity: 0.3 }}>|</span>
-                <span title="Wrapped Qi Balance" style={{ color: "#00D4AA" }}>🔒 {balances.wqi} WQI</span>
+                <span title="Wrapped Qi Balance" style={{ color: "#00D4AA" }}>{balances.wqi} WQI</span>
               </div>
             )}
 
@@ -210,7 +222,7 @@ export default function Navbar() {
                   <div className={styles.dropdownHeader}>
                     <span className={styles.dropdownAddress}>{truncatedAddress}</span>
                     <button className={styles.copyBtn} onClick={handleCopyAddress}>
-                      {copied ? "✓ Copied" : "📋 Copy"}
+                      {copied ? "Copied" : "Copy"}
                     </button>
                   </div>
 
@@ -221,12 +233,12 @@ export default function Navbar() {
 
                   <div className={styles.balanceSection}>
                     <div className={styles.balanceRow}>
-                      <span className={styles.balanceLabel}>Native Qi / QUAI:</span>
-                      <span className={styles.balanceVal}>⚡ {balances.qi}</span>
+                      <span className={styles.balanceLabel}>Native Qi Balance:</span>
+                      <span className={styles.balanceVal}>{balances.qi} Qi</span>
                     </div>
                     <div className={styles.balanceRow}>
                       <span className={styles.balanceLabel}>Wrapped Qi (WQI):</span>
-                      <span className={styles.balanceVal} style={{ color: "#00D4AA" }}>🔒 {balances.wqi} WQI</span>
+                      <span className={styles.balanceVal} style={{ color: "#00D4AA" }}>{balances.wqi} WQI</span>
                     </div>
                   </div>
 
@@ -242,7 +254,7 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* HAMBURGER TOGGLE BUTTON FOR MOBILE & FRAMES (ALWAYS VISIBLE ON SMALL SCREENS / FRAMES) */}
+            {/* HAMBURGER TOGGLE BUTTON FOR MOBILE */}
             <button
               className={styles.hamburgerBtn}
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
@@ -278,29 +290,29 @@ export default function Navbar() {
                 justifyContent: "space-between",
                 fontSize: "0.85rem"
               }}>
-                <span>⚡ Native: <strong>{balances.qi} Qi</strong></span>
-                <span style={{ color: "#00D4AA" }}>🔒 WQI: <strong>{balances.wqi}</strong></span>
+                <span>Native: <strong>{balances.qi} Qi</strong></span>
+                <span style={{ color: "#00D4AA" }}>WQI: <strong>{balances.wqi}</strong></span>
               </div>
             )}
 
             <div className={styles.mobileNavLinks}>
               <Link href="/dashboard" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
-                📊 Dashboard
+                Dashboard
               </Link>
               <Link href="/order/create" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
-                ⚡ Create Escrow Payment
+                Create Escrow Payment
               </Link>
               <Link href="/marketplace" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
-                🛍️ Escrow Marketplace
+                Escrow Marketplace
               </Link>
               <Link href="/tasks" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
-                🎯 Task & Bounty Hub
+                Task & Bounty Hub
               </Link>
               <Link href="/payroll" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
-                🏢 Corporate Payroll
+                Corporate Payroll
               </Link>
               <Link href="/admin/disputes" className={styles.mobileLink} onClick={() => setIsMobileMenuOpen(false)}>
-                ⚖️ Dispute Arbitration
+                Dispute Arbitration
               </Link>
             </div>
 
@@ -308,42 +320,18 @@ export default function Navbar() {
               <FarcasterAddFrameButton />
 
               {!isConnected ? (
-                <button
-                  className="btn btn-primary"
-                  style={{ width: "100%", marginTop: "10px" }}
-                  onClick={() => {
-                    setIsWalletModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
+                <button className="btn btn-primary" onClick={connectWallet} style={{ width: "100%" }}>
                   Connect Wallet
                 </button>
               ) : (
-                <button
-                  className={styles.disconnectBtn}
-                  style={{ marginTop: "10px" }}
-                  onClick={handleDisconnect}
-                >
-                  Disconnect Wallet ({truncatedAddress})
+                <button className={styles.disconnectBtn} onClick={handleDisconnect} style={{ width: "100%" }}>
+                  Disconnect ({truncatedAddress})
                 </button>
               )}
             </div>
           </div>
         )}
       </header>
-
-      {/* Modals */}
-      <WalletModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-        onConnect={handleWalletConnect}
-      />
-
-      <OrgOnboardingModal
-        isOpen={isOrgModalOpen}
-        onClose={() => setIsOrgModalOpen(false)}
-        onRegister={handleOrgRegistered}
-      />
     </>
   );
 }

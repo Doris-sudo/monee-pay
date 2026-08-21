@@ -85,9 +85,9 @@ export default function OrderPage({ params }) {
         ...prev,
         { id: prev.length + 1, title: `Full escrow funds (1,200 Qi) released to seller. Tx: ${hash}`, time: "Just now", type: "release" },
       ]);
-      showToast("✓ Delivery confirmed & escrow funds successfully released to seller!");
+      showToast("Delivery confirmed & escrow funds successfully released to seller!");
     } catch (err) {
-      showToast(`⚠️ Error: ${err.message}`);
+      showToast(`Error: ${err.message}`);
     }
   };
 
@@ -115,9 +115,9 @@ export default function OrderPage({ params }) {
           ...prev,
           { id: prev.length + 1, title: `${title} approved (${amount} released). Tx: ${hash}`, time: "Just now", type: "release" },
         ]);
-        showToast(`✓ Approved ${title}! Tranche released.`);
+        showToast(`Approved ${title}! Tranche released.`);
       } catch (err) {
-        showToast(`⚠️ Error: ${err.message}`);
+        showToast(`Error: ${err.message}`);
       }
     }
   };
@@ -135,9 +135,9 @@ export default function OrderPage({ params }) {
         ...prev,
         { id: prev.length + 1, title: `Seller claimed timeout payout after deadline expiry. Tx: ${hash}`, time: "Just now", type: "release" },
       ]);
-      showToast("✓ Delivery deadline expired — seller successfully claimed timeout payout!");
+      showToast("Delivery deadline expired — seller successfully claimed timeout payout!");
     } catch (err) {
-      showToast(`⚠️ Error: ${err.message}`);
+      showToast(`Error: ${err.message}`);
     }
   };
 
@@ -154,9 +154,9 @@ export default function OrderPage({ params }) {
         ...prev,
         { id: prev.length + 1, title: `Dispute opened. Escrow funds frozen on Quai Cyprus-1. Tx: ${hash}`, time: "Just now", type: "dispute" },
       ]);
-      showToast("⚠️ Dispute initiated. Funds are frozen until resolution.");
+      showToast("Dispute initiated. Funds are frozen until resolution.");
     } catch (err) {
-      showToast(`⚠️ Error: ${err.message}`);
+      showToast(`Error: ${err.message}`);
     }
   };
 
@@ -187,7 +187,7 @@ export default function OrderPage({ params }) {
     } catch (err) {
       console.error("Deposit error:", err);
       setPayState("connected");
-      showToast(`⚠️ Deposit Failed: ${err.message}`);
+      showToast(`Deposit Failed: ${err.message}`);
     }
   };
 
@@ -227,7 +227,7 @@ export default function OrderPage({ params }) {
             </div>
 
             <FarcasterShareButton
-              text={`Managing escrow order #${orderId} (1,200 Qi) on Quai Network via MoneePay! ⚡`}
+              text={`Managing escrow order #${orderId} (1,200 Qi) on Quai Network via MoneePay!`}
               buttonText="Share Order Frame"
             />
           </div>
@@ -243,7 +243,7 @@ export default function OrderPage({ params }) {
             color: "#F87171",
             fontSize: "0.88rem"
           }}>
-            ⚠️ Contract Error: {contractError}
+            Contract Error: {contractError}
           </div>
         )}
 
@@ -265,7 +265,7 @@ export default function OrderPage({ params }) {
             }}>
               <div>
                 <span style={{ fontSize: "0.8rem", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
-                  ⏱️ Product Delivery Deadline Countdown (#26)
+                  Product Delivery Deadline Countdown
                 </span>
                 <div style={{ fontSize: "1.4rem", fontWeight: "800", color: "#00D4AA", fontFamily: "monospace", marginTop: "2px" }}>
                   {formatCountdown(timeLeftSeconds)}
@@ -289,10 +289,10 @@ export default function OrderPage({ params }) {
               <div className={styles.statusBadgeCol}>
                 <span className={styles.labelMuted}>Escrow Lock Status</span>
                 <span className={`${styles.statusPill} ${styles["status_" + orderStatus]}`}>
-                  {orderStatus === "completed" && "✓ Settled & Released"}
-                  {orderStatus === "disputed" && "⚠️ Frozen (In Dispute)"}
-                  {orderStatus === "milestone" && "⚡ Active Escrow Lock"}
-                  {orderStatus === "funded" && "🔒 Funded in WQI"}
+                  {orderStatus === "completed" && "Settled & Released"}
+                  {orderStatus === "disputed" && "Frozen (In Dispute)"}
+                  {orderStatus === "milestone" && "Active Escrow Lock"}
+                  {orderStatus === "funded" && "Funded in WQI"}
                 </span>
               </div>
 
@@ -335,7 +335,7 @@ export default function OrderPage({ params }) {
                       <div key={m.id} className={`${styles.milestoneItem} ${styles["m_" + m.status]}`}>
                         <div className={styles.mInfo}>
                           <span className={styles.mIcon}>
-                            {m.status === "completed" ? "✓" : m.status === "active" ? "⚡" : "🔒"}
+                            {m.status === "completed" ? "M" : "M"}
                           </span>
                           <div>
                             <div className={styles.mTitle}>{m.title}</div>
@@ -410,7 +410,7 @@ export default function OrderPage({ params }) {
 
               {payState === "success" && (
                 <div style={{ textAlign: "center" }}>
-                  <h3 style={{ color: "#10B981" }}>Escrow Deposit Successful! 🎉</h3>
+                  <h3 style={{ color: "#10B981" }}>Escrow Deposit Successful</h3>
                   {txHash && (
                     <p style={{ fontSize: "0.85rem", wordBreak: "break-all" }}>
                       Tx Hash: <a href={`https://orchard.quaiscan.io/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ color: "#00D4AA" }}>{txHash}</a>

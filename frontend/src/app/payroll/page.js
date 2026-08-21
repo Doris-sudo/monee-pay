@@ -130,10 +130,10 @@ export default function PayrollPage() {
     if (!adminAddr) return;
     try {
       const hash = await grantAdmin(adminAddr);
-      setAdminStatusMsg(`✓ Admin granted to ${adminAddr}. Tx: ${hash}`);
+      setAdminStatusMsg(`Admin granted to ${adminAddr}. Tx: ${hash}`);
       setAdminAddr("");
     } catch (err) {
-      setAdminStatusMsg(`⚠️ Error: ${err.message}`);
+      setAdminStatusMsg(`Error: ${err.message}`);
     }
   };
 
@@ -141,10 +141,10 @@ export default function PayrollPage() {
     if (!adminAddr) return;
     try {
       const hash = await revokeAdmin(adminAddr);
-      setAdminStatusMsg(`✓ Admin revoked from ${adminAddr}. Tx: ${hash}`);
+      setAdminStatusMsg(`Admin revoked from ${adminAddr}. Tx: ${hash}`);
       setAdminAddr("");
     } catch (err) {
-      setAdminStatusMsg(`⚠️ Error: ${err.message}`);
+      setAdminStatusMsg(`Error: ${err.message}`);
     }
   };
 
@@ -175,7 +175,7 @@ export default function PayrollPage() {
             color: "#F87171",
             fontSize: "0.88rem"
           }}>
-            ⚠️ Payroll Contract Error: {contractError}
+            Payroll Contract Error: {contractError}
           </div>
         )}
 
@@ -401,7 +401,7 @@ export default function PayrollPage() {
                 </svg>
               </div>
               <h2 style={{ fontSize: "1.6rem", fontWeight: "800", margin: "0 0 8px 0" }}>
-                Batch Payroll Successfully Disbursed! 🎉
+                Batch Payroll Successfully Disbursed
               </h2>
               <p style={{ color: "#94a3b8", fontSize: "0.95rem", maxWidth: "540px", margin: "0 auto 12px auto" }}>
                 Disbursed a total of <strong>{totalQi.toLocaleString()} Qi</strong> to <strong>{recipientCount} team members</strong> via <code>BatchPayroll</code> smart contract.
@@ -431,7 +431,7 @@ export default function PayrollPage() {
 
               <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
                 <FarcasterShareButton
-                  text={`Just disbursed team payroll of ${totalQi.toLocaleString()} Qi to ${recipientCount} employees on Quai Network via MoneePay for Teams! ⚡`}
+                  text={`Just disbursed team payroll of ${totalQi.toLocaleString()} Qi to ${recipientCount} employees on Quai Network via MoneePay for Teams!`}
                   buttonText="Share Payout Receipt to Farcaster"
                 />
                 <button

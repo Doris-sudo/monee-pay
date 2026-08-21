@@ -209,7 +209,7 @@ export default function Dashboard() {
           <div className={styles.greetingGroup}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <h1 className={styles.greetingTitle}>
-                {isCorporate ? `🏢 ${activeOrg.name} Treasury Hub` : "Welcome back, Doris 👋"}
+                {isCorporate ? `${activeOrg.name} Treasury Hub` : "Welcome back, Doris"}
               </h1>
               {isCorporate && (
                 <span className={styles.orgRoleBadge}>
