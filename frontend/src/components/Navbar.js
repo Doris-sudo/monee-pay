@@ -8,12 +8,6 @@ import { quais } from "quais";
 import FarcasterAddFrameButton from "./FarcasterAddFrameButton";
 import styles from "./Navbar.module.css";
 
-const CONTRACT_ADDRESSES = {
-  ProductEscrow: "0x0067f487e59f0C45922854F32B6d8deD8e820776",
-  MilestoneEscrow: "0x000E6e8eE75Ccea4A0fFBBE88F378ce732de8fbA",
-  BatchPayroll: "0x0062dE9F6E207FFB33568853b05423fA80aC9E6A",
-};
-
 export default function Navbar() {
   const pathname = usePathname();
   const { account, isConnected, isConnecting, connectWallet, disconnectWallet, chainId, switchNetwork } = useWallet();
@@ -23,7 +17,6 @@ export default function Navbar() {
 
   // Live balances
   const [balances, setBalances] = useState({ qi: "0", wqi: "0" });
-
   const menuRef = useRef(null);
 
   // Fetch balances when connected
@@ -101,7 +94,9 @@ export default function Navbar() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "12px"
+          gap: "12px",
+          position: "relative",
+          zIndex: 1001,
         }}>
           <span>Incorrect Network: Switch to Quai Cyprus-1 (Chain 15000).</span>
           <button
@@ -122,58 +117,58 @@ export default function Navbar() {
         </div>
       )}
 
-      <header className={styles.navbarHeader}>
-        <div className={styles.navContainer}>
+      <header className={styles.header}>
+        <div className={styles.container}>
           {/* Logo Brand */}
-          <Link href="/" className={styles.brandLink}>
+          <Link href="/" className={styles.brand}>
             <div className={styles.logoIcon}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2L3 7V17L12 22L21 17V7L12 2Z" stroke="#00D4AA" strokeWidth="2" />
                 <path d="M12 6L7 9V15L12 18L17 15V9L12 6Z" fill="#00D4AA" />
               </svg>
             </div>
-            <span className={styles.brandTitle}>
-              Monee<span style={{ color: "#00D4AA" }}>Pay</span>
+            <span className={styles.logoText}>
+              Monee<span className={styles.logoHighlight}>Pay</span>
             </span>
             <span className={styles.networkBadgePill}>Quai Cyprus-1</span>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className={styles.desktopNav}>
+          <nav className={styles.navLinks}>
             <Link
               href="/dashboard"
-              className={`${styles.navLink} ${pathname === "/dashboard" ? styles.navLinkActive : ""}`}
+              className={`${styles.link} ${pathname === "/dashboard" ? styles.linkActive : ""}`}
             >
               Dashboard
             </Link>
             <Link
               href="/marketplace"
-              className={`${styles.navLink} ${pathname === "/marketplace" ? styles.navLinkActive : ""}`}
+              className={`${styles.link} ${pathname === "/marketplace" ? styles.linkActive : ""}`}
             >
               Marketplace
             </Link>
             <Link
               href="/tasks"
-              className={`${styles.navLink} ${pathname === "/tasks" ? styles.navLinkActive : ""}`}
+              className={`${styles.link} ${pathname === "/tasks" ? styles.linkActive : ""}`}
             >
               Tasks & Bounties
             </Link>
             <Link
               href="/payroll"
-              className={`${styles.navLink} ${pathname === "/payroll" ? styles.navLinkActive : ""}`}
+              className={`${styles.link} ${pathname === "/payroll" ? styles.linkActive : ""}`}
             >
               Corporate Payroll
             </Link>
             <Link
               href="/admin/disputes"
-              className={`${styles.navLink} ${pathname === "/admin/disputes" ? styles.navLinkActive : ""}`}
+              className={`${styles.link} ${pathname === "/admin/disputes" ? styles.linkActive : ""}`}
             >
               Arbitration
             </Link>
           </nav>
 
           {/* Right Action Bar */}
-          <div className={styles.navRightActions}>
+          <div className={styles.actions}>
             {/* Display Qi / WQI Balances on Desktop */}
             {isConnected && (
               <div className={styles.balanceBadgeDesk}>
@@ -195,7 +190,7 @@ export default function Navbar() {
                 onClick={handleToggleWallet}
                 id="connect-wallet-btn"
                 disabled={isConnecting && !isConnected}
-                style={{ padding: "8px 12px", fontSize: "0.85rem" }}
+                style={{ padding: "8px 14px", fontSize: "0.85rem" }}
               >
                 {isConnected ? (
                   <>

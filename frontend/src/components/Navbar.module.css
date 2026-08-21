@@ -52,6 +52,19 @@
   color: var(--accent-teal);
 }
 
+.networkBadgePill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  color: var(--accent-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+
 .navLinks {
   display: flex;
   align-items: center;
@@ -65,10 +78,16 @@
   transition: color var(--transition-fast);
   font-weight: 500;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .link:hover {
   color: var(--text-primary);
+}
+
+.linkActive {
+  color: var(--accent-teal) !important;
+  font-weight: 700 !important;
 }
 
 .linkGated {
