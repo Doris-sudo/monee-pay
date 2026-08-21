@@ -2,18 +2,20 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import FarcasterShareButton from "@/components/FarcasterShareButton";
-import { useEscrowContracts } from "@/hooks/useEscrowContracts";
+import { useEscrowContracts, CONTRACT_ADDRESSES } from "@/hooks/useEscrowContracts";
 import { useWallet } from "@/hooks/useWallet";
 import styles from "./OrderCheckout.module.css";
 import "./create.css";
 
 export default function OrderPage({ params }) {
-  const resolvedParams = params ? use(params) : { id: "82hd91" };
-  const orderId = resolvedParams.id || "82hd91";
+  const urlParams = useParams();
+  const rawId = urlParams?.id || (params ? (typeof params.then === "function" ? use(params)?.id : params.id) : null);
+  const orderId = rawId || "82hd91";
 
-  const { isConnected, connectWallet } = useWallet();
+  const { account, isConnected, connectWallet } = useWallet();
   const {
     depositProductEscrow,
     confirmDelivery,
@@ -23,6 +25,14 @@ export default function OrderPage({ params }) {
     loading: contractLoading,
     error: contractError,
   } = useEscrowContracts();
+
+  // Order Counterparty Addresses
+  const buyer = "0x001cdd4aad8A8Fa1e0781d30602d4Adc37603f47";
+  const seller = "0x00354572C988dB5ca96827B091a59dAea71Bfbc6";
+
+  const isBuyer = Boolean(account && buyer && account.toLowerCase() === buyer.toLowerCase());
+  const isSeller = Boolean(account && seller && account.toLowerCase() === seller.toLowerCase());
+  const isArbitrator = Boolean(account && account.toLowerCase() === CONTRACT_ADDRESSES.Arbitrator.toLowerCase());
 
   // View Mode: 'management' | 'checkout'
   const [viewMode, setViewMode] = useState("management");
@@ -71,8 +81,10 @@ export default function OrderPage({ params }) {
     return `${d}d ${h}h ${m}m ${s}s`;
   };
 
-  const isBuyer = account && buyer && account.toLowerCase() === buyer.toLowerCase();
-  const isSeller = account && seller && account.toLowerCase() === seller.toLowerCase();
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 4000);
+  };
 
   // Action: Confirm Delivery & Release Escrow (#26)
   const handleReleasePayment = async () => {
@@ -123,14 +135,14 @@ export default function OrderPage({ params }) {
         } else {
           setOrderStatus("completed");
         }
-        const title = updated[activeIdx].title;
-        const amount = updated[activeIdx].amount;
+        const trancheTitle = updated[activeIdx].title;
+        const trancheAmount = updated[activeIdx].amount;
         setMilestones(updated);
         setTimeline((prev) => [
           ...prev,
-          { id: prev.length + 1, title: `${title} approved (${amount} released). Tx: ${hash}`, time: "Just now", type: "release" },
+          { id: prev.length + 1, title: `${trancheTitle} approved (${trancheAmount} released). Tx: ${hash}`, time: "Just now", type: "release" },
         ]);
-        showToast(`Approved ${title}! Tranche released.`);
+        showToast(`Approved ${trancheTitle}! Tranche released.`);
       } catch (err) {
         showToast(`Error: ${err.message}`);
       }
@@ -139,10 +151,16 @@ export default function OrderPage({ params }) {
 
   // Action: Seller Claim Timeout Payout (#26)
   const handleClaimTimeout = async () => {
+    if (!isConnected) {
+      showToast("Please connect seller wallet to claim timeout payout.");
+      await connectWallet();
+      return;
+    }
+    if (account && seller && !isSeller) {
+      showToast(`Unauthorized: Only the Seller (${seller.slice(0, 6)}...${seller.slice(-4)}) can claim delivery timeout payouts.`);
+      return;
+    }
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
       const hash = await claimTimeout(orderId);
       setTxHash(hash);
       setOrderStatus("completed");
@@ -158,10 +176,16 @@ export default function OrderPage({ params }) {
 
   // Action: Open Dispute (#25, #26)
   const handleOpenDispute = async () => {
+    if (!isConnected) {
+      showToast("Please connect buyer or seller wallet to initiate dispute.");
+      await connectWallet();
+      return;
+    }
+    if (account && !isBuyer && !isSeller) {
+      showToast("Unauthorized: Only the Buyer or Seller involved in this order can open a dispute.");
+      return;
+    }
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
       const hash = await openProductDispute(orderId, "Dispute initiated on order item/milestone");
       setTxHash(hash);
       setOrderStatus("disputed");
@@ -173,11 +197,6 @@ export default function OrderPage({ params }) {
     } catch (err) {
       showToast(`Error: ${err.message}`);
     }
-  };
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(""), 4000);
   };
 
   // Checkout Execution (#26)
@@ -218,20 +237,21 @@ export default function OrderPage({ params }) {
         <div className={styles.topHeader}>
           <div>
             <span className={styles.orderBadge}>ORDER #{orderId.toUpperCase()}</span>
-            <h1 className={styles.orderTitle}>Full-Stack Protocol Audit & Development</h1>
-            <p className={styles.orderSub}>
-              P2P Protected Commerce & Milestone Escrow on Quai Network
+            <h1 className={styles.title}>
+              Escrow Order <span className="gradient-text">Management</span>
+            </h1>
+            <p className={styles.subtitle}>
+              Buyer: <code>{buyer.slice(0, 6)}...{buyer.slice(-4)}</code> • Seller: <code>{seller.slice(0, 6)}...{seller.slice(-4)}</code>
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            {/* View Mode Toggle */}
-            <div className={styles.viewToggleGroup}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+            <div className={styles.viewToggle}>
               <button
                 className={`${styles.toggleBtn} ${viewMode === "management" ? styles.toggleBtnActive : ""}`}
                 onClick={() => setViewMode("management")}
               >
-                Seller Dashboard
+                Escrow Order Details
               </button>
               <button
                 className={`${styles.toggleBtn} ${viewMode === "checkout" ? styles.toggleBtnActive : ""}`}
@@ -354,7 +374,7 @@ export default function OrderPage({ params }) {
               <div className={styles.leftCol}>
                 <div className={styles.card}>
                   <div className={styles.cardHeader}>
-                    <h3>Milestone Tranche Releases (#25)</h3>
+                    <h3>Milestone Tranche Releases</h3>
                     <span className={styles.badgeSm}>3 Tranches</span>
                   </div>
 
@@ -362,9 +382,7 @@ export default function OrderPage({ params }) {
                     {milestones.map((m) => (
                       <div key={m.id} className={`${styles.milestoneItem} ${styles["m_" + m.status]}`}>
                         <div className={styles.mInfo}>
-                          <span className={styles.mIcon}>
-                            {m.status === "completed" ? "M" : "M"}
-                          </span>
+                          <span className={styles.mIcon}>M</span>
                           <div>
                             <div className={styles.mTitle}>{m.title}</div>
                             <div className={styles.mAmount}>{m.amount}</div>
@@ -410,7 +428,7 @@ export default function OrderPage({ params }) {
         {viewMode === "checkout" && (
           <div className={styles.checkoutWrapper}>
             <div className={styles.checkoutCard}>
-              <h2>Protected Product Commerce Checkout (#26)</h2>
+              <h2>Protected Product Commerce Checkout</h2>
               <p className={styles.orderSub}>Deposit 1,200 Qi into ProductEscrow. Funds are protected until you confirm item delivery.</p>
 
               <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "16px", borderRadius: "10px", margin: "20px 0" }}>
