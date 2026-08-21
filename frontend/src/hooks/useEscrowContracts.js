@@ -37,19 +37,22 @@ export function useEscrowContracts() {
   // ISSUE #25: MilestoneEscrow Methods
   // ==========================================
 
-  const createTask = async ({ title, description, rewardQi, trancheBpsArray }) => {
+  const createTask = async ({ title, description, rewardQi, trancheBpsArray, milestoneTitles, milestonePercents }) => {
     setLoading(true);
     setError(null);
     try {
-      const sum = trancheBpsArray.reduce((acc, val) => acc + Number(val), 0);
-      if (sum !== 10000) {
-        throw new Error(`Tranche percentages must sum to 100%. Current sum: ${sum / 100}%`);
+      const titles = milestoneTitles || (title ? [title] : ["Delivery Milestone"]);
+      const percents = milestonePercents || (trancheBpsArray ? trancheBpsArray.map((b) => b / 100) : [100]);
+
+      const sum = percents.reduce((acc, val) => acc + Number(val), 0);
+      if (sum !== 100) {
+        throw new Error(`Milestone percentage allocations must sum to 100%. Current sum: ${sum}%`);
       }
 
       const contract = await getSignerContract(CONTRACT_ADDRESSES.MilestoneEscrow, MilestoneEscrowArtifact.abi || MilestoneEscrowArtifact);
       const valueWei = quais.parseEther(rewardQi.toString());
 
-      const tx = await contract.createTask(title, description, trancheBpsArray, { value: valueWei });
+      const tx = await contract.createTask(titles, percents, { value: valueWei });
       setTxHash(tx.hash);
       await tx.wait();
       setLoading(false);
